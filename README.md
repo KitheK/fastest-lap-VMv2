@@ -180,6 +180,24 @@ Default example: [`database/tracks/fsae_skidpad/fsae-skidpad.xlsx`](database/tra
 
 Drop any OpenTRACK Shape workbook from Vehicle_Model in the same way.
 
+#### 6. OpenLAP results page + fastest-lap HUD
+
+After a QSS lap, reconstruct OpenLAP driver channels (throttle/brake from the G-G leftover, steer/β from the OpenVEHICLE bicycle model) and write both an OpenLAP-style results figure and a fastest-lap-style follow-cam HUD (HTML, plays in real time):
+
+```bash
+python3 $FASTESTLAP/examples/python/fsae/run_qss.py \
+    --vehicle-xlsx $FASTESTLAP/database/vehicles/fsae/ubco-2026-ev.xlsx \
+    --vehicle-xml  $FASTESTLAP/database/vehicles/fsae/ubco-2026-ev.xml \
+    --track-xlsx   $FASTESTLAP/database/tracks/fsae_skidpad/fsae-skidpad.xlsx \
+    -o $FASTESTLAP/qss_out
+```
+
+Outputs in the folder: `openlap_results.png` (speed, curvature, ax/ay, tps/bps, steer, GGV, colour map), `hud.html` (camera-follow car, pedals, steering wheel, G-G, per-tire P/E estimates, telemetry strip), `hud_frame.png`, `channels.csv`. Tire P/E on the HUD is lumped load-transfer, not 6DOF contact patches. Use `--synthetic` if `libfastestlapc` is not on `LD_LIBRARY_PATH`.
+
+```bash
+PYTHONPATH=$FASTESTLAP/examples/python python3 -m unittest fsae.test_qss_viz
+```
+
 ### The approach
 
 The core of the software is a C++ library, that can be used through a Python API. Full documentation is not yet available but some examples can be found in [examples/python][examples-python]. Fastest-lap is very efficient, being able to compute a full optimal lap in less than 1 minute.
