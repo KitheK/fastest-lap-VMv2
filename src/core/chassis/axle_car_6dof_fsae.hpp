@@ -13,11 +13,10 @@ Axle_car_6dof_fsae<Timeseries_t,Tire_left_t,Tire_right_t,Axle_mode,state_start,c
     base_type::_path = path;
     _y_tire = {-0.5*_track, 0.5*_track};
 
-    if constexpr (std::is_same<Axle_mode<0,0>, STEERING_WITH_KAPPA<0,0>>::value)
-    {
-        std::get<LEFT>(base_type::_tires).get_frame().add_rotation(0.0, 0.0, Z);
-        std::get<RIGHT>(base_type::_tires).get_frame().add_rotation(0.0, 0.0, Z);
-    }
+    std::get<LEFT>(base_type::_tires).get_frame().add_rotation(0.0, 0.0, Z);
+    std::get<RIGHT>(base_type::_tires).get_frame().add_rotation(0.0, 0.0, Z);
+    std::get<LEFT>(base_type::_tires).get_frame().add_rotation(0.0, 0.0, X);
+    std::get<RIGHT>(base_type::_tires).get_frame().add_rotation(0.0, 0.0, X);
 
     std::get<LEFT>(base_type::_tires).get_frame().set_origin(get_tire_position(LEFT), get_tire_velocity(LEFT), Frame<Timeseries_t>::Frame_velocity_types::parent_frame);
     std::get<RIGHT>(base_type::_tires).get_frame().set_origin(get_tire_position(RIGHT), get_tire_velocity(RIGHT), Frame<Timeseries_t>::Frame_velocity_types::parent_frame);
@@ -54,6 +53,13 @@ Axle_car_6dof_fsae<Timeseries_t,Tire_left_t,Tire_right_t,Axle_mode,state_start,c
         std::get<LEFT>(base_type::_tires).get_frame().add_rotation(0.0, 0.0, Z);
         std::get<RIGHT>(base_type::_tires).get_frame().add_rotation(0.0, 0.0, Z);
     }
+    else
+    {
+        std::get<LEFT>(base_type::_tires).get_frame().add_rotation(0.0, 0.0, Z);
+        std::get<RIGHT>(base_type::_tires).get_frame().add_rotation(0.0, 0.0, Z);
+    }
+    std::get<LEFT>(base_type::_tires).get_frame().add_rotation(0.0, 0.0, X);
+    std::get<RIGHT>(base_type::_tires).get_frame().add_rotation(0.0, 0.0, X);
 
     std::get<LEFT>(base_type::_tires).get_frame().set_origin(get_tire_position(LEFT), get_tire_velocity(LEFT), Frame<Timeseries_t>::Frame_velocity_types::parent_frame);
     std::get<RIGHT>(base_type::_tires).get_frame().set_origin(get_tire_position(RIGHT), get_tire_velocity(RIGHT), Frame<Timeseries_t>::Frame_velocity_types::parent_frame);
@@ -86,6 +92,23 @@ void Axle_car_6dof_fsae<Timeseries_t,Tire_left_t,Tire_right_t,Axle_mode,state_st
 
     _phi = phi;
     _dphi = dphi;
+
+    _camber[LEFT]  = _camber_static + _camber_gain_roll * phi;
+    _camber[RIGHT] = _camber_static - _camber_gain_roll * phi;
+    _toe[LEFT]  = _toe_static + _toe_gain_roll * phi;
+    _toe[RIGHT] = _toe_static - _toe_gain_roll * phi;
+
+    Timeseries_t delta_left = _toe[LEFT];
+    Timeseries_t delta_right = _toe[RIGHT];
+    if constexpr (std::is_same<Axle_mode<0,0>, STEERING_WITH_KAPPA<0,0>>::value)
+    {
+        delta_left += _delta;
+        delta_right += _delta;
+    }
+    std::get<LEFT>(base_type::_tires).get_frame().set_rotation_angle(0, delta_left);
+    std::get<RIGHT>(base_type::_tires).get_frame().set_rotation_angle(0, delta_right);
+    std::get<LEFT>(base_type::_tires).get_frame().set_rotation_angle(1, _camber[LEFT]);
+    std::get<RIGHT>(base_type::_tires).get_frame().set_rotation_angle(1, _camber[RIGHT]);
 
     const scalar& k_tire = tire_l.get_radial_stiffness();
     const scalar& R0     = tire_l.get_radius();

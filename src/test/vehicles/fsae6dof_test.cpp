@@ -250,6 +250,26 @@ TEST_F(fsae6dof_test, grip_scale_peaks_near_optimal_temperature)
     EXPECT_LT(at_amb, at_opt);
 }
 
+TEST_F(fsae6dof_test, camber_follows_roll_gain)
+{
+    fsae6dof<double>::cartesian car(database);
+
+    auto q = default_q();
+    q[Chassis_t::input_names::velocity_x_mps] = 20.0;
+    q[Chassis_t::input_names::Z] = 0.02;
+    q[Chassis_t::input_names::PHI] = 0.05;
+
+    std::array<scalar, fsae6dof<scalar>::cartesian::number_of_controls> u{};
+    u[Chassis_t::control_names::brake_bias] = 0.53;
+
+    (void)car(q, u, 0.0);
+
+    EXPECT_NEAR(car.get_chassis().get_front_axle().get_camber_left(), -0.01745 + 0.3*0.05, 1.0e-6);
+    EXPECT_NEAR(car.get_chassis().get_front_axle().get_camber_right(), -0.01745 - 0.3*0.05, 1.0e-6);
+    EXPECT_NEAR(car.get_chassis().get_heave(), 0.02, 1.0e-12);
+    EXPECT_NEAR(car.get_chassis().get_roll(), 0.05, 1.0e-12);
+}
+
 TEST_F(fsae6dof_test, create_vehicle_from_xml_c_api)
 {
 #ifdef TEST_LIBFASTESTLAPC

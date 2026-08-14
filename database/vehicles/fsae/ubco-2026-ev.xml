@@ -20,6 +20,12 @@
             <left>0.0</left>
             <right>0.0</right>
         </beta-steering>
+        <kinematics>
+            <camber_static>-0.01745</camber_static>
+            <camber_gain_roll>0.3</camber_gain_roll>
+            <toe_static>0.0</toe_static>
+            <toe_gain_roll>0.0</toe_gain_roll>
+        </kinematics>
         <brakes>
             <max_torque units="N.m">1200.0</max_torque>
         </brakes>
@@ -44,6 +50,12 @@
             <gear-ratio>4.8</gear-ratio>
         </engine>
         <regen_coefficient>0.3</regen_coefficient>
+        <kinematics>
+            <camber_static>-0.01745</camber_static>
+            <camber_gain_roll>0.3</camber_gain_roll>
+            <toe_static>0.0</toe_static>
+            <toe_gain_roll>0.0</toe_gain_roll>
+        </kinematics>
     </rear-axle>
 
     <chassis model="chassis-car">

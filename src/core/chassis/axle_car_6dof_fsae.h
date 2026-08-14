@@ -132,6 +132,10 @@ class Axle_car_6dof_fsae : public Axle<Timeseries_t,std::tuple<Tire_left_t,Tire_
                 Timeseries_t grip_left, Timeseries_t grip_right);
 
     const Timeseries_t& get_steering_angle() const { return _delta; }
+    const Timeseries_t& get_camber_left() const { return _camber[LEFT]; }
+    const Timeseries_t& get_camber_right() const { return _camber[RIGHT]; }
+    const Timeseries_t& get_toe_left() const { return _toe[LEFT]; }
+    const Timeseries_t& get_toe_right() const { return _toe[RIGHT]; }
     const Timeseries_t& get_dangular_momentum_dt_left() const { return _dangular_momentum_dt_left; }
     const Timeseries_t& get_dangular_momentum_dt_right() const { return _dangular_momentum_dt_right; }
 
@@ -192,6 +196,12 @@ class Axle_car_6dof_fsae : public Axle<Timeseries_t,std::tuple<Tire_left_t,Tire_
     scalar _I = 0.0;
     scalar _differential_stiffness = 0.0;
     scalar _regen_coefficient = 0.0;
+    scalar _camber_static = 0.0;
+    scalar _camber_gain_roll = 0.0;
+    scalar _toe_static = 0.0;
+    scalar _toe_gain_roll = 0.0;
+    std::array<Timeseries_t,2> _camber = {0.0, 0.0};
+    std::array<Timeseries_t,2> _toe = {0.0, 0.0};
 
     Timeseries_t _phi = 0.0;
     Timeseries_t _dphi = 0.0;
@@ -223,7 +233,11 @@ class Axle_car_6dof_fsae : public Axle<Timeseries_t,std::tuple<Tire_left_t,Tire_
         { "inertia", _I },
         { "differential_stiffness", _differential_stiffness },
         { "smooth_throttle_coeff", _throttle_smooth_pos },
-        { "regen_coefficient", _regen_coefficient }
+        { "regen_coefficient", _regen_coefficient },
+        { "kinematics/camber_static", _camber_static },
+        { "kinematics/camber_gain_roll", _camber_gain_roll },
+        { "kinematics/toe_static", _toe_static },
+        { "kinematics/toe_gain_roll", _toe_gain_roll }
     };}
 
     template<typename T = Axle_mode<0,0>>
@@ -237,14 +251,24 @@ class Axle_car_6dof_fsae : public Axle<Timeseries_t,std::tuple<Tire_left_t,Tire_
         { "inertia", _I },
         { "beta-steering/left", _beta[LEFT] },
         { "beta-steering/right", _beta[RIGHT] },
-        { "smooth_throttle_coeff", _throttle_smooth_pos }
+        { "smooth_throttle_coeff", _throttle_smooth_pos },
+        { "kinematics/camber_static", _camber_static },
+        { "kinematics/camber_gain_roll", _camber_gain_roll },
+        { "kinematics/toe_static", _toe_static },
+        { "kinematics/toe_gain_roll", _toe_gain_roll }
     };}
 
     std::vector<bool> __used_parameters = std::vector<bool>(get_parameters().size(), false);
 
     std::unordered_map<std::string,Timeseries_t> get_outputs_map_self() const
     {
-        return {};
+        return
+        {
+            {base_type::_name + ".left-tire.camber", _camber[LEFT]},
+            {base_type::_name + ".right-tire.camber", _camber[RIGHT]},
+            {base_type::_name + ".left-tire.toe", _toe[LEFT]},
+            {base_type::_name + ".right-tire.toe", _toe[RIGHT]}
+        };
     }
 };
 
