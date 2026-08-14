@@ -335,26 +335,36 @@ TEST_F(fsae6dof_test, steady_state_zero_g_solves)
 TEST_F(fsae6dof_test, load_transfer_at_lateral_acceleration)
 {
     Xml_document database_ad = {"./database/vehicles/fsae/ubco-2026-ev.xml", true};
-    fsae6dof<CppAD::AD<scalar>>::cartesian car(database_ad);
-    Steady_state ss(car);
+    fsae6dof<CppAD::AD<scalar>>::cartesian car_ad(database_ad);
+    Steady_state ss(car_ad);
 
     const scalar v = 15.0;
     const scalar ay = 2.0;
     auto sol_0g = ss.solve(v, 0.0, 0.0, 1, false, {}, false);
     ASSERT_TRUE(sol_0g.solved);
 
-    const auto x0 = car.get_x(sol_0g.inputs, sol_0g.controls, v);
+    const auto x0 = car_ad.get_x(sol_0g.inputs, sol_0g.controls, v);
     const auto sol = ss.solve(v, 0.0, ay, 1, true, x0, false);
     ASSERT_TRUE(sol.solved);
+    EXPECT_NEAR(sol.ay, ay, 1.0e-12);
 
-    const auto Fz_fl = Value(car.get_chassis().get_front_axle().template get_tire<0>().get_force().z());
-    const auto Fz_fr = Value(car.get_chassis().get_front_axle().template get_tire<1>().get_force().z());
-    const auto Fz_rl = Value(car.get_chassis().get_rear_axle().template get_tire<0>().get_force().z());
-    const auto Fz_rr = Value(car.get_chassis().get_rear_axle().template get_tire<1>().get_force().z());
+    fsae6dof<double>::cartesian car(database);
+    (void)car(sol.inputs, sol.controls, 0.0);
 
-    EXPECT_LT(Fz_fr, Fz_fl);
-    EXPECT_LT(Fz_rr, Fz_rl);
-    EXPECT_GT(Value(car.get_chassis().get_roll()), 0.0);
+    const auto Fz_fl = car.get_chassis().get_front_axle().template get_tire<0>().get_force().z();
+    const auto Fz_fr = car.get_chassis().get_front_axle().template get_tire<1>().get_force().z();
+    const auto Fz_rl = car.get_chassis().get_rear_axle().template get_tire<0>().get_force().z();
+    const auto Fz_rr = car.get_chassis().get_rear_axle().template get_tire<1>().get_force().z();
+
+    // SAE: +y is right, so +ay transfers load to the left. Fz is negative (compression).
+    EXPECT_LT(Fz_fl, Fz_fr);
+    EXPECT_LT(Fz_rl, Fz_rr);
+    EXPECT_LT(car.get_chassis().get_roll(), 0.0);
+
+    const scalar extra_left_load = (Fz_fr + Fz_rr) - (Fz_fl + Fz_rl);
+    const scalar algebraic = 277.2 * ay * 0.25 / 1.2225;
+    EXPECT_GT(extra_left_load, 0.0);
+    EXPECT_GT(algebraic, 0.0);
 }
 
 TEST_F(fsae6dof_test, gg_diagram_smoke)
@@ -372,25 +382,15 @@ TEST_F(fsae6dof_test, gg_diagram_smoke)
     ASSERT_EQ(sol_max.size(), n);
     ASSERT_EQ(sol_min.size(), n);
 
-    bool any_max = false;
-    bool any_min = false;
     for (size_t i = 0; i < n; ++i)
     {
-        if (sol_max[i].solved)
-        {
-            any_max = true;
-            EXPECT_TRUE(std::isfinite(sol_max[i].ax));
-            EXPECT_TRUE(std::isfinite(sol_max[i].ay));
-        }
-        if (sol_min[i].solved)
-        {
-            any_min = true;
-            EXPECT_TRUE(std::isfinite(sol_min[i].ax));
-            EXPECT_TRUE(std::isfinite(sol_min[i].ay));
-        }
+        EXPECT_TRUE(sol_max[i].solved) << "max point " << i;
+        EXPECT_TRUE(sol_min[i].solved) << "min point " << i;
+        EXPECT_TRUE(std::isfinite(sol_max[i].ax));
+        EXPECT_TRUE(std::isfinite(sol_max[i].ay));
+        EXPECT_TRUE(std::isfinite(sol_min[i].ax));
+        EXPECT_TRUE(std::isfinite(sol_min[i].ay));
     }
-    EXPECT_TRUE(any_max);
-    EXPECT_TRUE(any_min);
 }
 
 TEST_F(fsae6dof_test, create_vehicle_from_xml_c_api)
