@@ -2,6 +2,10 @@
 __pycache__/
 *.py[cod]
 
+# Cursor / cloud-agent notes (do not commit)
+AGENTS.md
+agents.md
+
 # C extensions
 *.so
 *.dylib
