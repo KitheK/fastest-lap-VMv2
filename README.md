@@ -164,6 +164,22 @@ Python tests for the converter:
 PYTHONPATH=$FASTESTLAP/examples/python python3 -m unittest fsae.test_openvehicle_xlsx
 ```
 
+#### 5. Run a lap on an OpenTRACK workbook (Vehicle_Model tracks)
+
+OpenLAP / Vehicle_Model tracks use an **OpenTRACK** workbook (`Info` + `Shape` with `Type | Section Length | Corner Radius`). Convert to fastest-lap discrete XML, then run an OpenLAP-style quasi-steady-state lap that walks the racing line using numerical G-G envelopes:
+
+```bash
+python3 $FASTESTLAP/examples/python/fsae/xlsx_to_track.py \
+    $FASTESTLAP/database/tracks/fsae_skidpad/fsae-skidpad.xlsx \
+    -o $FASTESTLAP/database/tracks/fsae_skidpad/fsae-skidpad.xml
+
+PYTHONPATH=$FASTESTLAP/examples/python python3 -m unittest fsae.test_opentrack_xlsx
+```
+
+Default example: [`database/tracks/fsae_skidpad/fsae-skidpad.xlsx`](database/tracks/fsae_skidpad/fsae-skidpad.xlsx) — FSAE figure-8 skidpad, two 9.125 m radius circles, 114 m. The QSS lap uses `gg_diagram()` at 15 m/s and reports lap time, speed, and ax/ay along the line. A full 6DOF NLP `optimal_laptime` on `fsae-6dof` is still not a green path.
+
+Drop any OpenTRACK Shape workbook from Vehicle_Model in the same way.
+
 ### The approach
 
 The core of the software is a C++ library, that can be used through a Python API. Full documentation is not yet available but some examples can be found in [examples/python][examples-python]. Fastest-lap is very efficient, being able to compute a full optimal lap in less than 1 minute.
