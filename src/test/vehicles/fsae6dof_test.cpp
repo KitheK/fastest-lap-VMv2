@@ -1,5 +1,6 @@
 #include "gtest/gtest.h"
 #include "src/core/vehicles/fsae6dof.h"
+#include "src/core/applications/steady_state.h"
 #include "src/main/c/fastestlapc.h"
 #include <cmath>
 
@@ -268,6 +269,128 @@ TEST_F(fsae6dof_test, camber_follows_roll_gain)
     EXPECT_NEAR(car.get_chassis().get_front_axle().get_camber_right(), -0.01745 - 0.3*0.05, 1.0e-6);
     EXPECT_NEAR(car.get_chassis().get_heave(), 0.02, 1.0e-12);
     EXPECT_NEAR(car.get_chassis().get_roll(), 0.05, 1.0e-12);
+}
+
+TEST_F(fsae6dof_test, load_transfer_positive_roll_loads_right_tires)
+{
+    fsae6dof<double>::cartesian car(database);
+
+    auto q = default_q();
+    q[Chassis_t::input_names::velocity_x_mps] = 20.0;
+    q[Chassis_t::input_names::Z] = 0.02;
+    q[Chassis_t::input_names::PHI] = 0.05;
+
+    std::array<scalar, fsae6dof<scalar>::cartesian::number_of_controls> u{};
+    u[Chassis_t::control_names::brake_bias] = 0.53;
+
+    (void)car(q, u, 0.0);
+
+    const auto Fz_fl = car.get_chassis().get_front_axle().template get_tire<0>().get_force().z();
+    const auto Fz_fr = car.get_chassis().get_front_axle().template get_tire<1>().get_force().z();
+    const auto Fz_rl = car.get_chassis().get_rear_axle().template get_tire<0>().get_force().z();
+    const auto Fz_rr = car.get_chassis().get_rear_axle().template get_tire<1>().get_force().z();
+
+    EXPECT_LT(Fz_fl, 0.0);
+    EXPECT_LT(Fz_fr, 0.0);
+    EXPECT_LT(Fz_rl, 0.0);
+    EXPECT_LT(Fz_rr, 0.0);
+    EXPECT_LT(Fz_fr, Fz_fl);
+    EXPECT_LT(Fz_rr, Fz_rl);
+}
+
+TEST_F(fsae6dof_test, regen_motor_power_is_negative)
+{
+    fsae6dof<double>::cartesian car(database);
+
+    auto q = default_q();
+    q[Chassis_t::input_names::velocity_x_mps] = 20.0;
+    q[Chassis_t::input_names::Z] = 0.02;
+
+    std::array<scalar, fsae6dof<scalar>::cartesian::number_of_controls> u{};
+    u[Chassis_t::control_names::throttle] = -1.0;
+    u[Chassis_t::control_names::brake_bias] = 0.53;
+
+    (void)car(q, u, 0.0);
+
+    const auto power = car.get_chassis().get_rear_axle().get_engine().get_power();
+    EXPECT_LT(power, 0.0);
+
+    const auto integrals = car.compute_integral_quantities();
+    EXPECT_NEAR(integrals[0], power * 1.0e-6, 1.0e-12);
+}
+
+TEST_F(fsae6dof_test, steady_state_zero_g_solves)
+{
+    Xml_document database_ad = {"./database/vehicles/fsae/ubco-2026-ev.xml", true};
+    fsae6dof<CppAD::AD<scalar>>::cartesian car(database_ad);
+    Steady_state ss(car);
+
+    const auto sol = ss.solve(15.0, 0.0, 0.0, 1, false, {}, false);
+    EXPECT_TRUE(sol.solved);
+    EXPECT_TRUE(std::isfinite(sol.inputs[Chassis_t::input_names::Z]));
+    EXPECT_NEAR(sol.ax, 0.0, 1.0e-12);
+    EXPECT_NEAR(sol.ay, 0.0, 1.0e-12);
+}
+
+TEST_F(fsae6dof_test, load_transfer_at_lateral_acceleration)
+{
+    Xml_document database_ad = {"./database/vehicles/fsae/ubco-2026-ev.xml", true};
+    fsae6dof<CppAD::AD<scalar>>::cartesian car(database_ad);
+    Steady_state ss(car);
+
+    const scalar v = 15.0;
+    const scalar ay = 2.0;
+    auto sol_0g = ss.solve(v, 0.0, 0.0, 1, false, {}, false);
+    ASSERT_TRUE(sol_0g.solved);
+
+    const auto x0 = car.get_x(sol_0g.inputs, sol_0g.controls, v);
+    const auto sol = ss.solve(v, 0.0, ay, 1, true, x0, false);
+    ASSERT_TRUE(sol.solved);
+
+    const auto Fz_fl = Value(car.get_chassis().get_front_axle().template get_tire<0>().get_force().z());
+    const auto Fz_fr = Value(car.get_chassis().get_front_axle().template get_tire<1>().get_force().z());
+    const auto Fz_rl = Value(car.get_chassis().get_rear_axle().template get_tire<0>().get_force().z());
+    const auto Fz_rr = Value(car.get_chassis().get_rear_axle().template get_tire<1>().get_force().z());
+
+    EXPECT_LT(Fz_fr, Fz_fl);
+    EXPECT_LT(Fz_rr, Fz_rl);
+    EXPECT_GT(Value(car.get_chassis().get_roll()), 0.0);
+}
+
+TEST_F(fsae6dof_test, gg_diagram_smoke)
+{
+    Xml_document database_ad = {"./database/vehicles/fsae/ubco-2026-ev.xml", true};
+    fsae6dof<CppAD::AD<scalar>>::cartesian car(database_ad);
+    Steady_state ss(car);
+
+    const scalar v = 15.0;
+    auto sol_0g = ss.solve(v, 0.0, 0.0, 1, false, {}, false);
+    ASSERT_TRUE(sol_0g.solved);
+
+    constexpr size_t n = 2;
+    auto [sol_max, sol_min] = ss.gg_diagram(v, n);
+    ASSERT_EQ(sol_max.size(), n);
+    ASSERT_EQ(sol_min.size(), n);
+
+    bool any_max = false;
+    bool any_min = false;
+    for (size_t i = 0; i < n; ++i)
+    {
+        if (sol_max[i].solved)
+        {
+            any_max = true;
+            EXPECT_TRUE(std::isfinite(sol_max[i].ax));
+            EXPECT_TRUE(std::isfinite(sol_max[i].ay));
+        }
+        if (sol_min[i].solved)
+        {
+            any_min = true;
+            EXPECT_TRUE(std::isfinite(sol_min[i].ax));
+            EXPECT_TRUE(std::isfinite(sol_min[i].ay));
+        }
+    }
+    EXPECT_TRUE(any_max);
+    EXPECT_TRUE(any_min);
 }
 
 TEST_F(fsae6dof_test, create_vehicle_from_xml_c_api)
