@@ -10,7 +10,7 @@
   * { box-sizing: border-box; }
   html, body { margin:0; height:100%; background:var(--bg); color:var(--fg);
                font-family: ui-sans-serif, system-ui, sans-serif; }
-  #wrap { display:grid; grid-template-columns: 1fr 320px; grid-template-rows: auto 1fr 168px;
+  #wrap { display:grid; grid-template-columns: 1fr 320px; grid-template-rows: auto 1fr 150px;
           height:100%; gap:8px; padding:8px; }
   header { grid-column:1 / -1; display:flex; align-items:baseline; justify-content:space-between;
            padding:6px 10px; background:var(--panel); border:1px solid var(--line); border-radius:8px; }
@@ -22,12 +22,13 @@
   #side { display:flex; flex-direction:column; gap:8px; min-height:0; overflow:auto; }
   .card { background:var(--panel); border:1px solid var(--line); border-radius:8px; padding:8px 10px; }
   .card h2 { margin:0 0 6px; font-size:11px; letter-spacing:.08em; text-transform:uppercase; color:var(--muted); }
-  #gg, #mini, #wheel { width:100%; display:block; }
-  #car3d { width:100%; height:132px; display:block; background:#0a0d12; border-radius:6px; }
-  .pedals { display:flex; gap:10px; height:90px; align-items:flex-end; }
+  #gg, #mini { width:100%; display:block; }
+  #wheel { width:120px; height:120px; flex:0 0 120px; display:block; }
+  #car3d { width:100%; height:108px; display:block; background:#0a0d12; border-radius:6px; }
+  .pedals { display:flex; gap:10px; height:88px; align-items:flex-end; }
   .bar { width:36px; height:100%; border:1px solid var(--fg); position:relative; background:#010409; }
   .bar > i { position:absolute; left:0; right:0; bottom:0; }
-  .tires { display:grid; grid-template-columns:1fr 1fr; gap:6px; font-family: ui-monospace, monospace; font-size:11px; margin-top:6px; }
+  .tires { display:grid; grid-template-columns:1fr 1fr; gap:4px; font-family: ui-monospace, monospace; font-size:10px; margin-top:4px; }
   .tire { border:1px solid var(--line); padding:6px; border-radius:6px; }
   .tire b { color:var(--orange); }
   #telem { grid-column:1 / -1; background:var(--panel); border:1px solid var(--line); border-radius:8px; }
@@ -65,7 +66,7 @@
         <canvas id="wheel" width="140" height="140"></canvas>
       </div>
     </div>
-    <div class="card"><h2>G-G</h2><canvas id="gg" width="280" height="168"></canvas></div>
+    <div class="card"><h2>G-G</h2><canvas id="gg" width="280" height="140"></canvas></div>
     <div class="card">
       <h2>Vehicle</h2>
       <canvas id="car3d" width="300" height="132"></canvas>
@@ -435,7 +436,7 @@ function drawTrack(f){
   const spin = samp(D.s,f) / 0.245;
   ctx.translate(x, y);
   ctx.rotate(yaw);
-  ctx.scale(1.85, 1.85);
+  ctx.scale(2.35, 2.35);
   try {
     renderTrackCar(delta, spin);
     const m = 4.3;

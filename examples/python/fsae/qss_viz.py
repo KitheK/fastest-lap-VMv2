@@ -279,7 +279,7 @@ def plot_hud_frame(view: LapView, path: str | Path, index: Optional[int] = None,
         segs = np.concatenate([pts[:-1, None, :], pts[1:, None, :]], axis=1)
         ax.add_collection(LineCollection(segs, colors=cols, linewidths=3.2, zorder=3))
 
-    _draw_ubco_car(ax, cx, cy, yaw, math.radians(view.delta[i]), scale=1.85)
+    _draw_ubco_car(ax, cx, cy, yaw, math.radians(view.delta[i]), scale=2.2)
     aspect = 0.685 / 0.715 * 16 / 9
     ax.set_aspect("equal")
     ax.set_xlim(cx - 0.5 * cam_height * aspect, cx + 0.5 * cam_height * aspect)
