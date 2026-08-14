@@ -1,0 +1,141 @@
+<!--
+  UBCO Motorsports 2026 FSAE EV, as a 6DOF fastest-lap vehicle.
+
+  Geometry, mass, aero, wheel rates, and motor power come from the 2026 spec.
+  Inertia tensor is an estimate (not on the spec sheet).
+  Pacejka coefficients are a placeholder copied from the kart rear tire until
+  Hoosier TTC data is provided.
+-->
+<vehicle type="fsae-6dof">
+    <front-axle model="axle-car">
+        <track units="m">1.225</track>
+        <stiffness>
+            <wheel-rate>130000.0</wheel-rate>
+            <antiroll>11260.0</antiroll>
+            <damper>1500.0</damper>
+        </stiffness>
+        <inertia>0.5</inertia>
+        <smooth_throttle_coeff>0.01</smooth_throttle_coeff>
+        <beta-steering>
+            <left>0.0</left>
+            <right>0.0</right>
+        </beta-steering>
+        <brakes>
+            <max_torque units="N.m">1200.0</max_torque>
+        </brakes>
+    </front-axle>
+
+    <rear-axle model="axle-car">
+        <track units="m">1.220</track>
+        <stiffness>
+            <wheel-rate>143900.0</wheel-rate>
+            <antiroll>11160.0</antiroll>
+            <damper>1400.0</damper>
+        </stiffness>
+        <inertia>0.5</inertia>
+        <smooth_throttle_coeff>0.01</smooth_throttle_coeff>
+        <differential_stiffness units="N.m.s/rad">80.0</differential_stiffness>
+        <brakes>
+            <max_torque units="N.m">1200.0</max_torque>
+        </brakes>
+        <engine>
+            <maximum-power units="kW">80.0</maximum-power>
+        </engine>
+    </rear-axle>
+
+    <chassis model="chassis-car">
+        <!-- Mass with driver: 209.2 + 68 kg. CG height 250 mm. 51.27% front, wheelbase 1.620 m. -->
+        <com>0.0 0.0 -0.25</com>
+        <front_axle>0.789 0.0 0.047</front_axle>
+        <rear_axle>-0.831 0.0 0.047</rear_axle>
+        <mass>277.2</mass>
+        <inertia>
+            <Ixx> 30.0 </Ixx>  <Ixy> 0.0  </Ixy> <Ixz> 5.0  </Ixz>
+            <Iyx> 0.0  </Iyx>  <Iyy> 90.0 </Iyy> <Iyz> 0.0  </Iyz>
+            <Izx> 5.0  </Izx>  <Izy> 0.0  </Izy> <Izz> 110.0 </Izz>
+        </inertia>
+        <aerodynamics>
+            <rho>1.2</rho>
+            <cd>1.4</cd>
+            <cl>3.77</cl>
+            <area units="m2">1.14</area>
+        </aerodynamics>
+        <!-- 48% front aero → pressure center 0.053 m behind CoM -->
+        <pressure_center>-0.053 0.0 -0.25</pressure_center>
+        <brake_bias>0.53</brake_bias>
+    </chassis>
+
+    <rear-tire model="tire-pacejka" type="normal">
+        <radius>0.203</radius>
+        <radial-stiffness>240.0e3</radial-stiffness>
+        <radial-damping>1.0e3</radial-damping>
+        <nominal-vertical-load>680</nominal-vertical-load>
+        <lambdaFz0>1.6</lambdaFz0>
+        <Fz-max-ref2>1.0</Fz-max-ref2>
+        <longitudinal>
+            <pure>
+                <pCx1>2.3</pCx1>
+                <pDx1>0.9</pDx1>
+                <pEx1>0.95</pEx1>
+                <pKx1>20.0</pKx1>
+                <pKx2>1.0</pKx2>
+                <pKx3>-0.5</pKx3>
+            </pure>
+            <combined>
+                <rBx1>14.0</rBx1>
+                <rCx1>1.0</rCx1>
+            </combined>
+        </longitudinal>
+        <lateral>
+            <pure>
+                <pCy1>2.3</pCy1>
+                <pDy1>1.5</pDy1>
+                <pEy1>0.9</pEy1>
+                <pKy1>37.6</pKy1>
+                <pKy2>1.6</pKy2>
+                <pKy4>2.0</pKy4>
+            </pure>
+            <combined>
+                <rBy1>12.0</rBy1>
+                <rCy1>0.6</rCy1>
+            </combined>
+        </lateral>
+    </rear-tire>
+
+    <front-tire model="tire-pacejka" type="normal">
+        <radius>0.203</radius>
+        <radial-stiffness>240.0e3</radial-stiffness>
+        <radial-damping>1.0e3</radial-damping>
+        <nominal-vertical-load>680</nominal-vertical-load>
+        <lambdaFz0>1.6</lambdaFz0>
+        <Fz-max-ref2>1.0</Fz-max-ref2>
+        <longitudinal>
+            <pure>
+                <pCx1>2.3</pCx1>
+                <pDx1>0.9</pDx1>
+                <pEx1>0.95</pEx1>
+                <pKx1>20.0</pKx1>
+                <pKx2>1.0</pKx2>
+                <pKx3>-0.5</pKx3>
+            </pure>
+            <combined>
+                <rBx1>14.0</rBx1>
+                <rCx1>1.0</rCx1>
+            </combined>
+        </longitudinal>
+        <lateral>
+            <pure>
+                <pCy1>2.3</pCy1>
+                <pDy1>1.5</pDy1>
+                <pEy1>0.9</pEy1>
+                <pKy1>37.6</pKy1>
+                <pKy2>1.6</pKy2>
+                <pKy4>2.0</pKy4>
+            </pure>
+            <combined>
+                <rBy1>12.0</rBy1>
+                <rCy1>0.6</rCy1>
+            </combined>
+        </lateral>
+    </front-tire>
+</vehicle>

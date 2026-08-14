@@ -219,7 +219,7 @@ class Chassis_car_6dof : public Chassis<Timeseries_t,FrontAxle_t, RearAxle_t, st
     }
 
 
- private:
+ protected:
     //! Compute the left hand side of Newton's equations (linear momentum derivative)
     Vector3d<Timeseries_t> Newton_lhs() const;
 
