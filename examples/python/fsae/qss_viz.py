@@ -1,8 +1,10 @@
 """OpenLAP result plots and a fastest-lap-style 6DOF dashboard for a QSS lap.
 
 Result figures put each channel in its own axes, grouped (speed, curvature,
-acceleration, driver inputs, attitude). The HTML HUD follows plot_run_dashboard.m:
-world-aligned follow-cam, asphalt ribbon, UBCO car, tire card, pedals, G-G, telemetry.
+acceleration, driver inputs, attitude). The HTML HUD keeps the original dark
+grid (header, follow-cam stage, side DRIVER/G-G/VEHICLE/MAP, bottom telemetry)
+with the asphalt ribbon follow-cam and a UBCO-liveried 3D car on track and in
+the vehicle card.
 """
 
 from __future__ import annotations
@@ -228,25 +230,38 @@ def _draw_ubco_car(ax, x: float, y: float, yaw: float, delta: float = 0.0, scale
 
 
 def plot_hud_frame(view: LapView, path: str | Path, index: Optional[int] = None, cam_height: float = 72.0) -> Path:
-    """Single MATLAB-style dashboard frame (world-aligned follow-cam)."""
+    """Static frame of the dark HUD: asphalt follow-cam plus side cards."""
     plt = _setup_mpl()
-    from matplotlib.patches import Polygon, Circle, Rectangle
+    from matplotlib.patches import Polygon, Circle, Rectangle, FancyBboxPatch
     from matplotlib.collections import LineCollection
     import numpy as np
 
     n = len(view.s)
     i = n // 3 if index is None else max(0, min(index, n - 1))
-    fig = plt.figure(figsize=(16, 9), dpi=130, facecolor="#f4f4f4")
-    ax = fig.add_axes([0.0, 0.0, 1.0, 1.0], facecolor="#f4f4f4")
+    bg, panel, line, fg, muted = "#0d1117", "#161b22", "#30363d", "#c9d1d9", "#8b949e"
+    fig = plt.figure(figsize=(16, 9), dpi=130, facecolor=bg)
+
+    fig.add_artist(
+        FancyBboxPatch((0.008, 0.925), 0.984, 0.062, boxstyle="round,pad=0.004,rounding_size=0.008",
+                       facecolor=panel, edgecolor=line, transform=fig.transFigure, linewidth=1)
+    )
+    fig.text(0.02, 0.958, f"{view.vehicle_name}  ·  {view.track_name}", color=fg, fontsize=13, fontweight="bold")
+    fig.text(
+        0.02, 0.932,
+        f"t = {view.time[i]:.2f} s    {view.v[i]*3.6:.1f} km/h    ax {view.ax[i]:.2f} g    ay {view.ay[i]:.2f} g",
+        color=muted, fontsize=10,
+    )
+    fig.text(0.88, 0.942, f"{view.lap_time:.3f} s", color=ORANGE, fontsize=16, fontweight="bold")
+
+    ax = fig.add_axes([0.01, 0.195, 0.685, 0.715], facecolor="#d5d8dc")
     ax.set_xticks([])
     ax.set_yticks([])
     for spine in ax.spines.values():
-        spine.set_visible(False)
+        spine.set_color(line)
 
     cx, cy = view.x[i], view.y[i]
     yaw = _heading(view, i)
-    half = 3.5
-    xl, yl, xr, yr = _bounds(view, half)
+    xl, yl, xr, yr = _bounds(view, 3.5)
     asphalt = list(zip(xl, yl)) + list(zip(reversed(xr), reversed(yr)))
     ax.add_patch(Polygon(asphalt, closed=True, facecolor="#0d1117", edgecolor="none", zorder=1))
     ax.plot(view.x, view.y, color="white", lw=0.8, ls=(0, (4, 4)), zorder=2)
@@ -264,56 +279,36 @@ def plot_hud_frame(view: LapView, path: str | Path, index: Optional[int] = None,
         segs = np.concatenate([pts[:-1, None, :], pts[1:, None, :]], axis=1)
         ax.add_collection(LineCollection(segs, colors=cols, linewidths=3.2, zorder=3))
 
-    _draw_ubco_car(ax, cx, cy, yaw, math.radians(view.delta[i]), scale=1.35)
-    aspect = 16 / 9
+    _draw_ubco_car(ax, cx, cy, yaw, math.radians(view.delta[i]), scale=1.85)
+    aspect = 0.685 / 0.715 * 16 / 9
     ax.set_aspect("equal")
     ax.set_xlim(cx - 0.5 * cam_height * aspect, cx + 0.5 * cam_height * aspect)
     ax.set_ylim(cy - 0.5 * cam_height, cy + 0.5 * cam_height)
     ax.set_autoscale_on(False)
 
-    fig.text(0.02, 0.96, f"{view.vehicle_name}  ·  {view.track_name}", fontsize=13, fontweight="bold")
-    fig.text(0.02, 0.035, f"t = {view.time[i]:.2f} s / {view.lap_time:.3f} s    {view.v[i]*3.6:.1f} km/h", fontsize=11)
+    def _card(rect, title):
+        a = fig.add_axes(rect, facecolor="#010409")
+        for spine in a.spines.values():
+            spine.set_color(line)
+        a.set_title(title, fontsize=8, loc="left", color=muted, pad=4)
+        return a
 
-    axt = fig.add_axes([0.03, 0.57, 0.20, 0.34], facecolor="white")
-    for spine in axt.spines.values():
-        spine.set_color("black")
-        spine.set_linewidth(1.6)
-    axt.set_xlim(-1.6, 2.8)
-    axt.set_ylim(-1.4, 1.4)
-    axt.set_aspect("equal")
-    axt.axis("off")
-    axt.set_title("Vehicle / tires", fontsize=9, loc="left")
-    _draw_ubco_car(axt, 0.4, 0.0, math.pi / 2, math.radians(view.delta[i]), scale=0.55)
-    names = ("FL", "FR", "RL", "RR")
-    fzs = (view.fz_fl[i], view.fz_fr[i], view.fz_rl[i], view.fz_rr[i])
-    fz_max = max(max(view.fz_fl), max(view.fz_fr), max(view.fz_rl), max(view.fz_rr), 1.0)
-    for k, (name, fz) in enumerate(zip(names, fzs)):
-        y0 = 1.15 - k * 0.55
-        axt.add_patch(Rectangle((1.7, y0), 0.18, 0.45 * fz / fz_max, color=GREEN if fz / fz_max < 0.7 else ORANGE))
-        axt.text(1.95, y0 + 0.1, f"{name}  {fz:.0f} N", fontsize=7)
-
-    axb = fig.add_axes([0.27, 0.57, 0.15, 0.34], facecolor="white")
-    for spine in axb.spines.values():
-        spine.set_color("black")
-        spine.set_linewidth(1.6)
+    axb = _card([0.705, 0.755, 0.28, 0.155], "DRIVER")
     axb.set_xlim(0, 3.2)
-    axb.set_ylim(-0.2, 1.2)
-    axb.axis("off")
-    axb.set_title("Driver", fontsize=9, loc="left")
-    axb.add_patch(Rectangle((0.3, 0), 0.45, view.bps[i], color=RED))
-    axb.add_patch(Rectangle((0.95, 0), 0.45, view.tps[i], color=GREEN))
-    axb.add_patch(Rectangle((0.3, 0), 0.45, 1.0, fill=False, edgecolor="black"))
-    axb.add_patch(Rectangle((0.95, 0), 0.45, 1.0, fill=False, edgecolor="black"))
-    axb.text(0.52, -0.15, "BPS", ha="center", fontsize=8)
-    axb.text(1.17, -0.15, "TPS", ha="center", fontsize=8)
-    axb.add_patch(Circle((2.4, 0.55), 0.42, fill=False, edgecolor="black", lw=1.6))
+    axb.set_ylim(-0.25, 1.15)
+    axb.set_xticks([])
+    axb.set_yticks([])
+    axb.add_patch(Rectangle((0.25, 0), 0.4, view.bps[i], color=RED, zorder=2))
+    axb.add_patch(Rectangle((0.80, 0), 0.4, view.tps[i], color=GREEN, zorder=2))
+    axb.add_patch(Rectangle((0.25, 0), 0.4, 1.0, fill=False, edgecolor=fg, lw=1.2))
+    axb.add_patch(Rectangle((0.80, 0), 0.4, 1.0, fill=False, edgecolor=fg, lw=1.2))
+    axb.text(0.45, -0.18, "BPS", ha="center", color=RED, fontsize=8)
+    axb.text(1.00, -0.18, "TPS", ha="center", color=GREEN, fontsize=8)
+    axb.add_patch(Circle((2.35, 0.50), 0.38, fill=False, edgecolor=fg, lw=1.4))
     ang = math.radians(view.steer[i])
-    axb.plot([2.4, 2.4 + 0.42 * math.sin(ang)], [0.55, 0.55 + 0.42 * math.cos(ang)], color=ORANGE, lw=2)
+    axb.plot([2.35, 2.35 + 0.38 * math.sin(ang)], [0.50, 0.50 + 0.38 * math.cos(ang)], color=ORANGE, lw=2)
 
-    axg = fig.add_axes([0.46, 0.57, 0.16, 0.34], facecolor="white")
-    for spine in axg.spines.values():
-        spine.set_color("black")
-        spine.set_linewidth(1.6)
+    axg = _card([0.705, 0.575, 0.28, 0.165], "G-G")
     if view.env_ay:
         ay_p = view.env_ay
         ay_m = [-a for a in ay_p]
@@ -321,17 +316,41 @@ def plot_hud_frame(view: LapView, path: str | Path, index: Optional[int] = None,
         axg.plot(ay_p, view.env_ax_min, color=ORANGE, lw=1)
         axg.plot(ay_m, view.env_ax_max, color=ORANGE, lw=1)
         axg.plot(ay_m, view.env_ax_min, color=ORANGE, lw=1)
-    axg.plot(view.ay[max(0, i - 40) : i + 1], view.ax[max(0, i - 40) : i + 1], color=GREEN, lw=1.2)
-    axg.plot(view.ay[i], view.ax[i], "o", color=GREEN, ms=8, mec="black")
+    axg.plot(view.ay[max(0, i - 40) : i + 1], view.ax[max(0, i - 40) : i + 1], color=CYAN, lw=1.2)
+    axg.plot(view.ay[i], view.ax[i], "o", color=ORANGE, ms=7)
     axg.set_aspect("equal")
-    axg.set_title("G-G", fontsize=9, loc="left")
-    axg.tick_params(labelsize=7)
+    axg.tick_params(labelsize=6, colors=muted)
+    axg.set_facecolor("#010409")
+    for spine in axg.spines.values():
+        spine.set_color(line)
 
-    axtel = fig.add_axes([0.65, 0.57, 0.32, 0.34], facecolor="#0d1117")
+    axt = _card([0.705, 0.355, 0.28, 0.205], "VEHICLE")
+    axt.set_xlim(-1.5, 2.7)
+    axt.set_ylim(-1.35, 1.35)
+    axt.set_aspect("equal")
+    axt.set_xticks([])
+    axt.set_yticks([])
+    _draw_ubco_car(axt, 0.15, 0.0, math.pi / 2, math.radians(view.delta[i]), scale=0.48)
+    names = ("FL", "FR", "RL", "RR")
+    fzs = (view.fz_fl[i], view.fz_fr[i], view.fz_rl[i], view.fz_rr[i])
+    fz_max = max(max(view.fz_fl), max(view.fz_fr), max(view.fz_rl), max(view.fz_rr), 1.0)
+    for k, (name, fz) in enumerate(zip(names, fzs)):
+        y0 = 0.95 - k * 0.55
+        axt.add_patch(Rectangle((1.55, y0), 0.16, 0.40 * fz / fz_max, color=GREEN if fz / fz_max < 0.7 else ORANGE))
+        axt.text(1.78, y0 + 0.08, f"{name}  {fz:.0f} N", fontsize=6.5, color=fg)
+
+    axm = _card([0.705, 0.195, 0.28, 0.145], "MAP")
+    axm.plot(view.x, view.y, color="#30363d", lw=5)
+    axm.plot(view.x, view.y, color="#58a6ff", lw=1.4)
+    axm.plot(cx, cy, marker=(3, 0, math.degrees(yaw) - 90), color=ORANGE, ms=9)
+    axm.set_aspect("equal")
+    axm.set_xticks([])
+    axm.set_yticks([])
+
+    axtel = fig.add_axes([0.01, 0.02, 0.98, 0.155], facecolor="#010409")
     for spine in axtel.spines.values():
-        spine.set_color("black")
-        spine.set_linewidth(1.6)
-    t0 = view.time[i] - 20.0
+        spine.set_color(line)
+    t0 = view.time[i] - 8.0
     j0 = next((j for j, t in enumerate(view.time) if t >= t0), 0)
     tt = view.time[j0 : i + 1]
     if len(tt) > 1:
@@ -342,21 +361,13 @@ def plot_hud_frame(view: LapView, path: str | Path, index: Optional[int] = None,
                 return [0.5] * len(arr)
             return [(x - lo) / (hi - lo) for x in arr]
 
-        axtel.plot(tt, norm(view.v), color=MAGENTA, lw=1.5)
-        axtel.plot(tt, view.tps[j0 : i + 1], color=GREEN, lw=1.2)
-        axtel.plot(tt, view.bps[j0 : i + 1], color=RED, lw=1.2)
-        axtel.plot(tt, norm(view.steer), color=CYAN, lw=1.2)
-    axtel.tick_params(colors="white", labelsize=7)
-    axtel.set_title("Telemetry", fontsize=9, loc="left", color="white")
-    for spine in axtel.spines.values():
-        spine.set_color("#333")
-
-    axm = fig.add_axes([0.82, 0.08, 0.16, 0.22], facecolor="none")
-    axm.plot(view.x, view.y, color="#cfcfcf", lw=4)
-    axm.plot(view.x, view.y, color="#0072bd", lw=1.5)
-    axm.plot(cx, cy, marker=(3, 0, math.degrees(yaw) - 90), color=ORANGE, ms=10)
-    axm.set_aspect("equal")
-    axm.axis("off")
+        axtel.plot(tt, norm(view.v), color=MAGENTA, lw=1.5, label="speed")
+        axtel.plot(tt, view.tps[j0 : i + 1], color=GREEN, lw=1.2, label="tps")
+        axtel.plot(tt, view.bps[j0 : i + 1], color=RED, lw=1.2, label="bps")
+        axtel.plot(tt, norm(view.steer), color=CYAN, lw=1.2, label="steer")
+    axtel.tick_params(colors=muted, labelsize=7)
+    axtel.set_title("Telemetry", fontsize=8, loc="left", color=muted)
+    axtel.legend(loc="upper left", fontsize=7, facecolor=panel, edgecolor=line, labelcolor=fg, ncol=4)
 
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -370,7 +381,7 @@ def _round_list(values, ndigits: int = 5):
 
 
 def write_hud_html(view: LapView, path: str | Path, cam_height: float = 72.0, half_width: float = 3.5) -> Path:
-    """Self-contained MATLAB-style follow-cam HUD."""
+    """Self-contained dark HUD with asphalt follow-cam and UBCO 3D car."""
     xl, yl, xr, yr = _bounds(view, half_width)
     payload = {
         "vehicle": view.vehicle_name,

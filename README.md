@@ -194,7 +194,7 @@ python3 $FASTESTLAP/examples/python/fsae/run_qss.py \
     -o $FASTESTLAP/qss_out
 ```
 
-Outputs in the folder: `openlap_results.png` (each channel on its own axes, grouped: speed, curvature, acceleration, driver inputs, attitude, plus GGV and map), `hud.html` (MATLAB-style world-aligned follow-cam, ~72 m field of view, UBCO top-view car, tire card, pedals, G-G, telemetry), `hud_frame.png`, `channels.csv`. The dashboard layout matches `plot_run_dashboard.m`; channels are still QSS estimates (not a live 6DOF NLP). Use `--synthetic` if `libfastestlapc` is not on `LD_LIBRARY_PATH`. The follow-cam car is a 2D UBCO FSAE drawing (the local `formula_student.glb` is not in this tree).
+Outputs in the folder: `openlap_results.png` (each channel on its own axes, grouped: speed, curvature, acceleration, driver inputs, attitude, plus GGV and map), `hud.html` (original dark grid: header, follow-cam stage, side DRIVER / G-G / VEHICLE / MAP, bottom telemetry), `hud_frame.png`, `channels.csv`. The stage uses a world-aligned asphalt ribbon (~72 m field of view, dashed centerline, throttle/brake trail) with a UBCO-liveried FSAE car on the road and in the vehicle card. Channels are still QSS estimates (not a live 6DOF NLP). Use `--synthetic` if `libfastestlapc` is not on `LD_LIBRARY_PATH`. The uploaded Sketchfab `Carmodel.gltf` is missing its `untitled.bin` mesh; the HUD car is a Three.js FSAE with white nose / navy “1”, navy sidepods and flame graphics, and “UBC OKANAGAN RACING” on the rear wing.
 
 ```bash
 PYTHONPATH=$FASTESTLAP/examples/python python3 -m unittest fsae.test_qss_viz
