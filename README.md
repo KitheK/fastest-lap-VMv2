@@ -50,11 +50,14 @@ The project application is **setup exploration and lap-time prediction** for a F
 | Camber / toe vs roll | Linear kinematic gains (not hardpoint IK) |
 | Physics checks | Google Test suite `fsae6dof*` (load transfer, regen, G-G smoke) |
 
-Vehicle XML: [`database/vehicles/fsae/ubco-2026-ev.xml`](database/vehicles/fsae/ubco-2026-ev.xml)  
+Vehicle workbook (source of numbers): [`database/vehicles/fsae/ubco-2026-ev.xlsx`](database/vehicles/fsae/ubco-2026-ev.xlsx)  
+Vehicle XML (what the C++/Python API loads): [`database/vehicles/fsae/ubco-2026-ev.xml`](database/vehicles/fsae/ubco-2026-ev.xml)  
 C++ type: `fsae6dof` · public type string: `fsae-6dof`  
 Design notes: [`docs/superpowers/specs/2026-08-14-fsae-6dof-design.md`](docs/superpowers/specs/2026-08-14-fsae-6dof-design.md), [`docs/superpowers/specs/2026-08-14-fsae-further-ideas-design.md`](docs/superpowers/specs/2026-08-14-fsae-further-ideas-design.md)
 
-**Not in this model:** unsprung quarter-car, 3D wishbone IK, 3-node tire thermal, battery SOC as a state, ABS, OpenLAP / OpenVEHICLE I/O, track banking.
+Vehicle numbers are **not hardcoded for setup studies**. Drop an OpenVEHICLE-format `.xlsx` (same Info + Torque Curve layout as OpenLAP / OpenVEHICLE `tmp.xlsx`) into `database/vehicles/fsae/` and convert it to XML. 6DOF-only fields live on an optional **FastestLap** sheet.
+
+**Not in this model:** unsprung quarter-car, 3D wishbone IK, 3-node tire thermal, battery SOC as a state, ABS, track banking.
 
 ### How to run the FSAE workflow
 
@@ -114,23 +117,52 @@ The FSAE model has 20 inputs (heave/roll/pitch + four tire temperatures), so the
 
 To cap energy like F1’s engine-energy example, add an integral constraint on `battery-energy` in the options XML (see [`examples/python/f1/optimal-laptime/2-engine-energy-limits/`](examples/python/f1/optimal-laptime/2-engine-energy-limits/)).
 
-#### 4. Change the car (setup studies)
+#### 4. Change the car (xlsx → XML)
 
-Edit [`database/vehicles/fsae/ubco-2026-ev.xml`](database/vehicles/fsae/ubco-2026-ev.xml) and re-run G-G / lap time. Defaults from the 2026 spec:
+Edit the OpenVEHICLE workbook, then regenerate XML (requires `openpyxl`: `pip install openpyxl`):
 
-| Parameter | XML path | Default |
+```bash
+# Write a filled UBCO 2026 template (Info + Torque Curve + FastestLap)
+python3 $FASTESTLAP/examples/python/fsae/xlsx_to_xml.py \
+    $FASTESTLAP/database/vehicles/fsae/ubco-2026-ev.xlsx --write-template
+
+# Convert any OpenVEHICLE-format workbook to fsae-6dof XML
+python3 $FASTESTLAP/examples/python/fsae/xlsx_to_xml.py \
+    $FASTESTLAP/database/vehicles/fsae/ubco-2026-ev.xlsx \
+    -o $FASTESTLAP/database/vehicles/fsae/ubco-2026-ev.xml
+```
+
+Workbook layout (matches OpenVEHICLE / OpenLAP `Vehicle_Model`):
+
+| Sheet | Columns | Used for |
 |---|---|---|
-| Peak motor torque | `rear-axle/engine/peak-torque` | 240 N·m |
-| FSAE power cap | `rear-axle/engine/maximum-power` | 80 kW |
-| Gear ratio | `rear-axle/engine/gear-ratio` | 4.8 |
-| Regen | `rear-axle/regen_coefficient` | 0.3 |
-| Mass (car + driver) | `chassis/mass` | 277.2 kg |
-| Aero Cl / Cd / area | `chassis/aerodynamics/` | 3.77 / 1.4 / 1.14 m² |
-| Aero maps | `chassis/aero-maps/` | dCl/dz = −8 /m |
-| Tire thermal | `chassis/tire-thermal/` | C = 900 J/K, T_opt = 353.15 K |
-| Camber vs roll | `front-axle/kinematics/` and `rear-axle/kinematics/` | static −1°, gain 0.3 |
+| **Info** | `Category \| Description \| Value \| Unit \| Comment` | Mass, wheelbase, CL/CD (OpenVEHICLE sign: CL>0 is lift), aero distribution, tyre radius, gear stack |
+| **Torque Curve** | `Engine Speed [rpm] \| Torque [Nm]` | Peak torque / peak power if FastestLap does not override |
+| **FastestLap** (optional) | same 5-column Info layout | Tracks, wheel rates, CG height, 80 kW / 240 N·m / gear 4.8 overrides, regen, kinematics, aero maps, tire thermal, Ixx/Iyy/Izz |
 
-Pacejka coefficients in that XML are a **placeholder** until Hoosier TTC data is fitted. G-G shape will move when those numbers change.
+OpenVEHICLE stores **CL/CD as negative for downforce/drag**. The converter flips the sign into fastest-lap’s positive Cl/Cd.
+
+Defaults currently committed in [`database/vehicles/fsae/ubco-2026-ev.xlsx`](database/vehicles/fsae/ubco-2026-ev.xlsx):
+
+| Parameter | Workbook cell | XML path | Default |
+|---|---|---|---|
+| Peak motor torque | FastestLap `Peak Motor Torque` | `rear-axle/engine/peak-torque` | 240 N·m |
+| FSAE power cap | FastestLap `Maximum Power` (kW) | `rear-axle/engine/maximum-power` | 80 kW |
+| Gear ratio | FastestLap `Gear Ratio` (else primary×1st×final) | `rear-axle/engine/gear-ratio` | 4.8 |
+| Regen | FastestLap `Regen Coefficient` | `rear-axle/regen_coefficient` | 0.3 |
+| Mass (car + driver) | Info `Total Mass` | `chassis/mass` | 277.2 kg |
+| Aero Cl / Cd / area | Info `Lift Coefficient CL` / `Drag Coefficient CD` / `Frontal Area` | `chassis/aerodynamics/` | 3.77 / 1.4 / 1.14 m² |
+| Aero maps | FastestLap `dCl_dz` … | `chassis/aero-maps/` | dCl/dz = −8 /m |
+| Tire thermal | FastestLap `Tire Thermal *` | `chassis/tire-thermal/` | C = 900 J/K, T_opt = 353.15 K |
+| Camber vs roll | FastestLap `Camber Static` / `Camber Gain Roll` | `front-axle/kinematics/` and `rear-axle/kinematics/` | static −1°, gain 0.3 |
+
+Pacejka shape coefficients are **placeholders** (not in OpenVEHICLE) until Hoosier TTC data is fitted. G-G shape will move when those numbers change.
+
+Python tests for the converter:
+
+```bash
+PYTHONPATH=$FASTESTLAP/examples/python python3 -m unittest fsae.test_openvehicle_xlsx
+```
 
 ### The approach
 
