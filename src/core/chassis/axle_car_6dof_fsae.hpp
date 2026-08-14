@@ -135,8 +135,9 @@ void Axle_car_6dof_fsae<Timeseries_t,Tire_left_t,Tire_right_t,Axle_mode,state_st
 
     if constexpr (std::is_same<Axle_mode<0,0>, POWERED_WITH_DIFFERENTIAL<0,0>>::value)
     {
-        const Timeseries_t throttle_percentage = smooth_pos(throttle, _throttle_smooth_pos);
-        const Timeseries_t engine_torque = _engine(throttle_percentage, 0.5*(omega_left + omega_right));
+        const Timeseries_t motor_command = smooth_pos(throttle, _throttle_smooth_pos)
+                                         - _regen_coefficient * smooth_pos(-throttle, _throttle_smooth_pos);
+        const Timeseries_t engine_torque = _engine(motor_command, 0.5*(omega_left + omega_right));
         const Timeseries_t differential_torque = _differential_stiffness*(omega_left - omega_right);
         _torque_left  += 0.5*engine_torque - differential_torque;
         _torque_right += 0.5*engine_torque + differential_torque;

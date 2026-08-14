@@ -193,13 +193,20 @@ class fsae6dof
 
         struct Integral_quantities
         {
-            enum { N_INTEGRAL_QUANTITIES };
-            inline const static std::vector<std::string> names = {};
+            enum { IBATTERY_ENERGY, IFRONT_LEFT_TIRE_ENERGY, IFRONT_RIGHT_TIRE_ENERGY,
+                                  IREAR_LEFT_TIRE_ENERGY, IREAR_RIGHT_TIRE_ENERGY, N_INTEGRAL_QUANTITIES };
+            inline const static std::vector<std::string> names = {"battery-energy","tire-fl-energy","tire-fr-energy","tire-rl-energy","tire-rr-energy"};
         };
 
         std::array<Timeseries_t,Integral_quantities::N_INTEGRAL_QUANTITIES> compute_integral_quantities() const
         {
-            return {};
+            std::array<Timeseries_t,Integral_quantities::N_INTEGRAL_QUANTITIES> outputs;
+            outputs[Integral_quantities::IBATTERY_ENERGY]           = this->get_chassis().get_rear_axle().get_engine().get_power()*1.0e-6;
+            outputs[Integral_quantities::IFRONT_LEFT_TIRE_ENERGY]   = -this->get_chassis().get_front_axle().template get_tire<0>().get_dissipation()*1.0e-6;
+            outputs[Integral_quantities::IFRONT_RIGHT_TIRE_ENERGY]  = -this->get_chassis().get_front_axle().template get_tire<1>().get_dissipation()*1.0e-6;
+            outputs[Integral_quantities::IREAR_LEFT_TIRE_ENERGY]    = -this->get_chassis().get_rear_axle().template get_tire<0>().get_dissipation()*1.0e-6;
+            outputs[Integral_quantities::IREAR_RIGHT_TIRE_ENERGY]   = -this->get_chassis().get_rear_axle().template get_tire<1>().get_dissipation()*1.0e-6;
+            return outputs;
         }
     };
 

@@ -40,7 +40,10 @@
         </brakes>
         <engine>
             <maximum-power units="kW">80.0</maximum-power>
+            <peak-torque units="N.m">240.0</peak-torque>
+            <gear-ratio>4.8</gear-ratio>
         </engine>
+        <regen_coefficient>0.3</regen_coefficient>
     </rear-axle>
 
     <chassis model="chassis-car">

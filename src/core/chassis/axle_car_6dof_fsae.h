@@ -190,6 +190,7 @@ class Axle_car_6dof_fsae : public Axle<Timeseries_t,std::tuple<Tire_left_t,Tire_
     scalar _throttle_smooth_pos = 0.0;
     scalar _I = 0.0;
     scalar _differential_stiffness = 0.0;
+    scalar _regen_coefficient = 0.0;
 
     Timeseries_t _phi = 0.0;
     Timeseries_t _dphi = 0.0;
@@ -220,7 +221,8 @@ class Axle_car_6dof_fsae : public Axle<Timeseries_t,std::tuple<Tire_left_t,Tire_
         { "stiffness/damper", _c_damper },
         { "inertia", _I },
         { "differential_stiffness", _differential_stiffness },
-        { "smooth_throttle_coeff", _throttle_smooth_pos }
+        { "smooth_throttle_coeff", _throttle_smooth_pos },
+        { "regen_coefficient", _regen_coefficient }
     };}
 
     template<typename T = Axle_mode<0,0>>

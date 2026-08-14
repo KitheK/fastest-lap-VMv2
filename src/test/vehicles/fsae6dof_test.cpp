@@ -114,6 +114,63 @@ TEST_F(fsae6dof_test, ode_straight_running_is_finite)
     EXPECT_LT(Fz_rr, 0.0);
 }
 
+TEST_F(fsae6dof_test, ev_envelope_torque_limited_at_low_speed)
+{
+    fsae6dof<double>::cartesian car(database);
+
+    std::array<scalar, fsae6dof<scalar>::cartesian::number_of_inputs> q{};
+    q[Chassis_t::input_names::velocity_x_mps] = 5.0;
+    q[Chassis_t::input_names::Z] = 0.02;
+
+    std::array<scalar, fsae6dof<scalar>::cartesian::number_of_controls> u{};
+    u[Chassis_t::control_names::throttle] = 1.0;
+    u[Chassis_t::control_names::brake_bias] = 0.53;
+
+    (void)car(q, u, 0.0);
+
+    const auto power = car.get_chassis().get_rear_axle().get_engine().get_power();
+    EXPECT_GT(power, 0.0);
+    EXPECT_LT(power, 80.0e3);
+}
+
+TEST_F(fsae6dof_test, ev_envelope_power_capped)
+{
+    fsae6dof<double>::cartesian car(database);
+
+    std::array<scalar, fsae6dof<scalar>::cartesian::number_of_inputs> q{};
+    q[Chassis_t::input_names::velocity_x_mps] = 40.0;
+    q[Chassis_t::input_names::Z] = 0.02;
+
+    std::array<scalar, fsae6dof<scalar>::cartesian::number_of_controls> u{};
+    u[Chassis_t::control_names::throttle] = 1.0;
+    u[Chassis_t::control_names::brake_bias] = 0.53;
+
+    (void)car(q, u, 0.0);
+
+    const auto power = car.get_chassis().get_rear_axle().get_engine().get_power();
+    EXPECT_GT(power, 50.0e3);
+    EXPECT_LT(power, 80.0e3 * 1.01);
+}
+
+TEST_F(fsae6dof_test, battery_energy_integral_is_motor_power)
+{
+    fsae6dof<double>::cartesian car(database);
+
+    std::array<scalar, fsae6dof<scalar>::cartesian::number_of_inputs> q{};
+    q[Chassis_t::input_names::velocity_x_mps] = 20.0;
+    q[Chassis_t::input_names::Z] = 0.02;
+
+    std::array<scalar, fsae6dof<scalar>::cartesian::number_of_controls> u{};
+    u[Chassis_t::control_names::throttle] = 1.0;
+    u[Chassis_t::control_names::brake_bias] = 0.53;
+
+    (void)car(q, u, 0.0);
+
+    const auto integrals = car.compute_integral_quantities();
+    EXPECT_EQ(integrals.size(), 5u);
+    EXPECT_NEAR(integrals[0], car.get_chassis().get_rear_axle().get_engine().get_power()*1.0e-6, 1.0e-12);
+}
+
 TEST_F(fsae6dof_test, create_vehicle_from_xml_c_api)
 {
 #ifdef TEST_LIBFASTESTLAPC
