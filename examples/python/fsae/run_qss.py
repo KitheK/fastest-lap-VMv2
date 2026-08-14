@@ -61,6 +61,7 @@ def main() -> int:
     parser.add_argument("--v-cap", type=float, default=40.0)
     parser.add_argument("--synthetic", action="store_true", help="Skip fastest-lap gg_diagram (tests / no lib)")
     parser.add_argument("--hud-index", type=int, default=None, help="Mesh index for the static HUD PNG")
+    parser.add_argument("--cam-height", type=float, default=72.0, help="Follow-cam vertical field [m]")
     args = parser.parse_args()
 
     if not args.track_xlsx.is_file():
@@ -91,8 +92,8 @@ def main() -> int:
     out = args.output
     out.mkdir(parents=True, exist_ok=True)
     plot_openlap_results(view, out / "openlap_results.png")
-    plot_hud_frame(view, out / "hud_frame.png", index=args.hud_index)
-    write_hud_html(view, out / "hud.html")
+    plot_hud_frame(view, out / "hud_frame.png", index=args.hud_index, cam_height=args.cam_height)
+    write_hud_html(view, out / "hud.html", cam_height=args.cam_height)
     write_csv(view, out / "channels.csv")
     write_summary(view, out / "summary.txt")
     print(f"Lap time {view.lap_time:.3f} s  ({source})")

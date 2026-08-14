@@ -70,7 +70,9 @@ class TestQssViz(unittest.TestCase):
             self.assertIn("canvas", text)
             self.assertIn("FSAE Skidpad", text)
             self.assertIn("requestAnimationFrame", text)
-            self.assertIn("D.yaw", text)
+            self.assertIn("drawUbcoCar", text)
+            self.assertIn("camHeight", text)
+            self.assertIn("D.xl", text)
             self.assertIn(str(round(view.lap_time, 3)).split(".")[0], text)
 
     def test_2019_endurance_qss_artifacts(self) -> None:
@@ -88,6 +90,7 @@ class TestQssViz(unittest.TestCase):
             html = write_hud_html(view, Path(tmp) / "hud.html")
             text = html.read_text(encoding="utf-8")
             self.assertIn("2019 Endurance", text)
+            self.assertIn("drawUbcoCar", text)
             self.assertGreater(max(view.s), 1800.0)
 
 
