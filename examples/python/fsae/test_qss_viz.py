@@ -73,6 +73,23 @@ class TestQssViz(unittest.TestCase):
             self.assertIn("D.yaw", text)
             self.assertIn(str(round(view.lap_time, 3)).split(".")[0], text)
 
+    def test_2019_endurance_qss_artifacts(self) -> None:
+        xlsx = Path(__file__).resolve().parents[3] / "database/tracks/fsae_2019_endurance/2019_endurance.xlsx"
+        if not xlsx.is_file():
+            self.skipTest("2019_endurance.xlsx not in the tree")
+        with tempfile.TemporaryDirectory() as tmp:
+            mesh = mesh_opentrack(xlsx, mesh_size=5.0)
+            result = qss_lap(mesh, _table(), v_cap=30.0)
+            self.assertGreater(result.lap_time, 40.0)
+            self.assertLess(result.lap_time, 400.0)
+            view = reconstruct_lap(
+                result, mesh, _table(), vehicle_name="UBCO 2026 EV", track_name=mesh.info.name
+            )
+            html = write_hud_html(view, Path(tmp) / "hud.html")
+            text = html.read_text(encoding="utf-8")
+            self.assertIn("2019 Endurance", text)
+            self.assertGreater(max(view.s), 1800.0)
+
 
 if __name__ == "__main__":
     unittest.main()

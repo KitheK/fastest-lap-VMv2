@@ -4,7 +4,7 @@
     python3 examples/python/fsae/run_qss.py \\
         --vehicle-xlsx database/vehicles/fsae/ubco-2026-ev.xlsx \\
         --vehicle-xml  database/vehicles/fsae/ubco-2026-ev.xml \\
-        --track-xlsx   database/tracks/fsae_skidpad/fsae-skidpad.xlsx \\
+        --track-xlsx   database/tracks/fsae_2019_endurance/2019_endurance.xlsx \\
         -o /tmp/qss_out
 """
 
@@ -50,7 +50,11 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--vehicle-xlsx", type=Path, default=_ROOT / "database/vehicles/fsae/ubco-2026-ev.xlsx")
     parser.add_argument("--vehicle-xml", type=Path, default=_ROOT / "database/vehicles/fsae/ubco-2026-ev.xml")
-    parser.add_argument("--track-xlsx", type=Path, default=_ROOT / "database/tracks/fsae_skidpad/fsae-skidpad.xlsx")
+    parser.add_argument(
+        "--track-xlsx",
+        type=Path,
+        default=_ROOT / "database/tracks/fsae_2019_endurance/2019_endurance.xlsx",
+    )
     parser.add_argument("-o", "--output", type=Path, default=Path("qss_out"))
     parser.add_argument("--speed", type=float, default=15.0, help="G-G envelope speed [m/s]")
     parser.add_argument("--gg-points", type=int, default=10)

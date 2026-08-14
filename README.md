@@ -170,13 +170,15 @@ OpenLAP / Vehicle_Model tracks use an **OpenTRACK** workbook (`Info` + `Shape` w
 
 ```bash
 python3 $FASTESTLAP/examples/python/fsae/xlsx_to_track.py \
-    $FASTESTLAP/database/tracks/fsae_skidpad/fsae-skidpad.xlsx \
-    -o $FASTESTLAP/database/tracks/fsae_skidpad/fsae-skidpad.xml
+    $FASTESTLAP/database/tracks/fsae_2019_endurance/2019_endurance.xlsx \
+    -o $FASTESTLAP/database/tracks/fsae_2019_endurance/2019_endurance.xml
 
 PYTHONPATH=$FASTESTLAP/examples/python python3 -m unittest fsae.test_opentrack_xlsx
 ```
 
-Default example: [`database/tracks/fsae_skidpad/fsae-skidpad.xlsx`](database/tracks/fsae_skidpad/fsae-skidpad.xlsx) — FSAE figure-8 skidpad, two 9.125 m radius circles, 114 m. The QSS lap uses `gg_diagram()` at 15 m/s and reports lap time, speed, and ax/ay along the line. A full 6DOF NLP `optimal_laptime` on `fsae-6dof` is still not a green path.
+Default endurance example: [`database/tracks/fsae_2019_endurance/2019_endurance.xlsx`](database/tracks/fsae_2019_endurance/2019_endurance.xlsx) — FSAE Michigan 2019 endurance (OpenTRACK name `2019 Endurance`, Detroit), 131 shape segments, 1823 m closed. The importer applies OpenTRACK's linear start/finish XY correction so the map joins. Shorter fixture: [`database/tracks/fsae_skidpad/fsae-skidpad.xlsx`](database/tracks/fsae_skidpad/fsae-skidpad.xlsx) — figure-8 skidpad, two 9.125 m radius circles, 114 m.
+
+The QSS lap uses `gg_diagram()` at 15 m/s and reports lap time, speed, and ax/ay along the line. A full 6DOF NLP `optimal_laptime` on `fsae-6dof` is still not a green path.
 
 Drop any OpenTRACK Shape workbook from Vehicle_Model in the same way.
 
@@ -188,7 +190,7 @@ After a QSS lap, reconstruct OpenLAP driver channels (throttle/brake from the G-
 python3 $FASTESTLAP/examples/python/fsae/run_qss.py \
     --vehicle-xlsx $FASTESTLAP/database/vehicles/fsae/ubco-2026-ev.xlsx \
     --vehicle-xml  $FASTESTLAP/database/vehicles/fsae/ubco-2026-ev.xml \
-    --track-xlsx   $FASTESTLAP/database/tracks/fsae_skidpad/fsae-skidpad.xlsx \
+    --track-xlsx   $FASTESTLAP/database/tracks/fsae_2019_endurance/2019_endurance.xlsx \
     -o $FASTESTLAP/qss_out
 ```
 

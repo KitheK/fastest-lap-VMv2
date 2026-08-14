@@ -38,6 +38,20 @@ class TestOpenTrackXlsx(unittest.TestCase):
             self.assertAlmostEqual(kmax, 1.0 / 9.125, delta=0.03)
             self.assertAlmostEqual(abs(kmin), 1.0 / 9.125, delta=0.03)
 
+    def test_2019_endurance_closed_loop(self) -> None:
+        path = Path(__file__).resolve().parents[3] / "database/tracks/fsae_2019_endurance/2019_endurance.xlsx"
+        if not path.is_file():
+            self.skipTest("2019_endurance.xlsx not in the tree")
+        mesh = mesh_opentrack(path, mesh_size=1.0, half_width=1.5)
+        self.assertEqual(mesh.info.name, "2019 Endurance")
+        self.assertAlmostEqual(mesh.length, 1823.31, places=2)
+        self.assertGreater(len(mesh.s), 1800)
+        gap = ((mesh.x[-1] - mesh.x[0]) ** 2 + (mesh.y[-1] - mesh.y[0]) ** 2) ** 0.5
+        self.assertLess(gap, 1.0e-6)
+        xml = mesh_to_discrete_xml(mesh)
+        self.assertIn('type="closed"', xml)
+        self.assertGreater(max(abs(k) for k in mesh.kappa), 0.2)
+
     def test_official_skidpad_if_present(self) -> None:
         path = Path("/tmp/opentrack/FSAE Skidpad.xlsx")
         if not path.is_file():
