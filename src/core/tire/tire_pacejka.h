@@ -216,6 +216,11 @@ struct Pacejka_standard_model
     template<typename Timeseries_t>
     Timeseries_t force_combined_lateral_magic(Timeseries_t kappa, Timeseries_t lambda, Timeseries_t Fz) const;
 
+    //! Identity scaling so Tire_pacejka::update(Fz, kappa, road) can pass physical kappa
+    //! (the simple model instead returns load-dependent kappa_max).
+    template<typename Timeseries_t>
+    Timeseries_t maximum_kappa(Timeseries_t) const { return Timeseries_t{1.0}; }
+
     DECLARE_PARAMS(
         { "nominal-vertical-load", _Fz0 },
         { "lambdaFz0", _lambdaFz0 },
