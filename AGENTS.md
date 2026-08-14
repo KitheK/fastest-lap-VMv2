@@ -65,3 +65,9 @@ sims) and can take tens of minutes; the other four suites finish in seconds.
 export LD_LIBRARY_PATH=/workspace/build/lib:/workspace/build/thirdparty/lib:$LD_LIBRARY_PATH
 PYTHONPATH=/workspace/examples/python python3 your_script.py
 ```
+
+FSAE G-G via `fastest_lap.gg_diagram("ubco", 54*KMH, 10)` after
+`create_vehicle_from_xml(..., "database/vehicles/fsae/ubco-2026-ev.xml")` is the
+validated Python path. `optimal_laptime` for `fsae-6dof` is registered in the C
+API but currently aborts; use G-G and `vehicles_test --gtest_filter='fsae6dof*'`
+until that NLP path is fixed.
