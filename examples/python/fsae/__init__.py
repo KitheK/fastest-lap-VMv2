@@ -1,1 +1,1 @@
-"""FSAE helpers: OpenVEHICLE / OpenTRACK .xlsx → fastest-lap XML."""
+"""FSAE helpers: OpenVEHICLE / OpenTRACK .xlsx, QSS laps, and HUD plots."""
