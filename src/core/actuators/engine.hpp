@@ -6,10 +6,22 @@
 template<typename Timeseries_t>
 inline Engine<Timeseries_t>::Engine(Xml_document& database, const std::string& path, const bool only_max_power)
 : _path(path),
+  _gear_ratio(1.0),
   _only_max_power(only_max_power),
+  _ev_envelope(false),
+  _peak_torque(0.0),
   _maximum_power(0.0) 
 {
-    if ( _only_max_power )
+    if ( database.has_element(path+"peak-torque") )
+    {
+        _ev_envelope = true;
+        read_parameters(database, path, get_parameters(), __used_parameters);
+        _peak_torque = database.get_element(path+"peak-torque").get_value(double());
+        database.get_element(path+"peak-torque").set_attribute("__unused__","false");
+        _gear_ratio = database.get_element(path+"gear-ratio").get_value(double());
+        database.get_element(path+"gear-ratio").set_attribute("__unused__","false");
+    }
+    else if ( _only_max_power )
     {
         read_parameters(database, path, get_parameters(), __used_parameters);
     }
@@ -37,6 +49,14 @@ inline Timeseries_t Engine<Timeseries_t>::operator()(const Timeseries_t throttle
     if ( _direct_torque )
         return throttle_percentage;
 
+    else if ( _ev_envelope )
+    {
+        const Timeseries_t omega_motor = _gear_ratio * angular_speed;
+        const Timeseries_t torque_power_limited = (_maximum_power*1.0e3)/(omega_motor + 1.0e-6);
+        const Timeseries_t torque_motor = throttle_percentage * min(Timeseries_t(_peak_torque), torque_power_limited);
+        _power = torque_motor * omega_motor;
+        return torque_motor * _gear_ratio;
+    }
     else if ( _only_max_power )
     {
         _power = throttle_percentage*(_maximum_power*1.0e3);

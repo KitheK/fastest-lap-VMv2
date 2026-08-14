@@ -43,3 +43,45 @@ TEST_F(Engine_curve,evaluation_at_control_points)
     }
 
 }
+
+class Engine_ev_envelope : public ::testing::Test
+{
+ protected:
+    Engine_ev_envelope()
+    {
+        database.create_root_element("vehicle");
+        database.add_element("vehicle/rear-axle/engine/maximum-power").set_value("80.0");
+        database.add_element("vehicle/rear-axle/engine/peak-torque").set_value("240.0");
+        database.add_element("vehicle/rear-axle/engine/gear-ratio").set_value("4.8");
+        _engine = Engine<scalar>(database, "vehicle/rear-axle/engine/", true);
+    }
+
+    Xml_document database;
+    Engine<scalar> _engine;
+};
+
+TEST_F(Engine_ev_envelope, torque_limited_at_low_speed)
+{
+    const scalar omega_wheel = 20.0;
+    const scalar torque_wheel = _engine(1.0, omega_wheel);
+    EXPECT_NEAR(torque_wheel, 240.0 * 4.8, 1.0e-6);
+    EXPECT_NEAR(_engine.get_power(), 240.0 * 4.8 * omega_wheel, 1.0e-4);
+}
+
+TEST_F(Engine_ev_envelope, power_limited_at_high_speed)
+{
+    const scalar omega_wheel = 200.0;
+    const scalar omega_motor = 4.8 * omega_wheel;
+    const scalar torque_wheel = _engine(1.0, omega_wheel);
+    const scalar expected_motor_torque = 80000.0 / omega_motor;
+    EXPECT_NEAR(torque_wheel, expected_motor_torque * 4.8, 1.0e-4);
+    EXPECT_NEAR(_engine.get_power(), 80000.0, 1.0e-3);
+}
+
+TEST_F(Engine_ev_envelope, regen_is_negative_torque)
+{
+    const scalar omega_wheel = 20.0;
+    const scalar torque_wheel = _engine(-0.3, omega_wheel);
+    EXPECT_NEAR(torque_wheel, -0.3 * 240.0 * 4.8, 1.0e-6);
+    EXPECT_LT(_engine.get_power(), 0.0);
+}

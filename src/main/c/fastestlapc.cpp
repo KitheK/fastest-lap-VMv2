@@ -6,6 +6,7 @@
 
 #include "src/core/vehicles/lot2016kart.h"
 #include "src/core/vehicles/limebeer2014f1.h"
+#include "src/core/vehicles/fsae6dof.h"
 #include "src/core/applications/steady_state.h"
 #include "src/core/applications/optimal_laptime.h"
 #include "lion/propagators/crank_nicolson.h"
@@ -30,6 +31,7 @@ catch(lion_exception& ex) \
 // Tables
 std::unordered_map<std::string,lot2016kart_all>     table_kart_6dof;
 std::unordered_map<std::string,limebeer2014f1_all>  table_f1_3dof;
+std::unordered_map<std::string,fsae6dof_all>        table_fsae_6dof;
 std::unordered_map<std::string,Track_by_polynomial> table_track;
 std::unordered_map<std::string,scalar>              table_scalar;
 std::unordered_map<std::string,std::vector<scalar>> table_vector;
@@ -38,6 +40,7 @@ std::unordered_map<std::string,std::vector<scalar>> table_vector;
 #ifdef __cplusplus
 fastestlapc_API std::unordered_map<std::string,lot2016kart_all>& get_table_kart_6dof() { return table_kart_6dof; }
 fastestlapc_API std::unordered_map<std::string,limebeer2014f1_all>& get_table_f1_3dof() { return table_f1_3dof; }
+fastestlapc_API std::unordered_map<std::string,fsae6dof_all>& get_table_fsae_6dof() { return table_fsae_6dof; }
 fastestlapc_API std::unordered_map<std::string,Track_by_polynomial>& get_table_track() { return table_track; }
 fastestlapc_API std::unordered_map<std::string,scalar>& get_table_scalar() { return table_scalar; }
 fastestlapc_API std::unordered_map<std::string,std::vector<scalar>>& get_table_vector() { return table_vector; }
@@ -61,11 +64,14 @@ Optimal_laptime<typename vehicle_t::vehicle_ad_curvilinear>& get_warm_start()
 {
     static Optimal_laptime<typename limebeer2014f1_all::vehicle_ad_curvilinear> warm_start_limebeer2014f1;
     static Optimal_laptime<typename lot2016kart_all::vehicle_ad_curvilinear> warm_start_lot2016kart;
+    static Optimal_laptime<typename fsae6dof_all::vehicle_ad_curvilinear> warm_start_fsae6dof;
 
     if constexpr (std::is_same_v<vehicle_t,limebeer2014f1_all>)
         return warm_start_limebeer2014f1;
     else if constexpr (std::is_same_v<vehicle_t,lot2016kart_all>)
         return warm_start_lot2016kart;
+    else if constexpr (std::is_same_v<vehicle_t,fsae6dof_all>)
+        return warm_start_fsae6dof;
     else
         throw fastest_lap_exception("[ERROR] get_warm_start() -> vehicle_t is not supported");
 }
@@ -78,6 +84,9 @@ void check_variable_exists_in_tables(const std::string& name)
 
     if ( table_f1_3dof.count(name) != 0 )
         throw fastest_lap_exception(std::string("Vehicle of type f1-3dof with name \"") + name + "\" already exists");
+
+    if ( table_fsae_6dof.count(name) != 0 )
+        throw fastest_lap_exception(std::string("Vehicle of type fsae-6dof with name \"") + name + "\" already exists");
 
     if ( table_track.count(name) != 0 )
         throw fastest_lap_exception(std::string("Track with name \"") + name + "\" already exists");
@@ -133,6 +142,14 @@ void create_vehicle_from_xml(const char* vehicle_name, const char* database_file
             throw fastest_lap_exception("Vehicle already exists");
         }
     }
+    else if ( vehicle_type == "fsae-6dof" )
+    {
+        auto out = table_fsae_6dof.insert({s_name,{database}});
+        if (out.second==false)
+        {
+            throw fastest_lap_exception("The insertion to the map failed");
+        }
+    }
     else
     {
         throw fastest_lap_exception("Vehicle type not recognized");
@@ -163,6 +180,10 @@ void create_vehicle_empty(const char* vehicle_name, const char* vehicle_type_c)
         {
             throw fastest_lap_exception("The insertion to the map failed");
         }
+    }
+    else if ( vehicle_type == "fsae-6dof" )
+    {
+        throw fastest_lap_exception("[ERROR] create_vehicle_empty -> vehicle type \"fsae-6dof\" cannot be created empty. Create from XML database instead");
     }
     else
     {
@@ -222,6 +243,10 @@ void copy_variable(const char* c_old_name, const char* c_new_name)
     {
         table_f1_3dof.insert({new_name, table_f1_3dof.at(old_name)});
     }
+    else if ( table_fsae_6dof.count(old_name) != 0 )
+    {
+        table_fsae_6dof.insert({new_name, table_fsae_6dof.at(old_name)});
+    }
     else if ( table_track.count(old_name) != 0 )
     {
         table_track.insert({new_name, table_track.at(old_name)});
@@ -263,6 +288,11 @@ void move_variable(const char* c_old_name, const char* c_new_name)
         table_f1_3dof.insert({new_name, table_f1_3dof.at(old_name)});
         table_f1_3dof.erase(old_name);
     }
+    else if ( table_fsae_6dof.count(old_name) != 0 )
+    {
+        table_fsae_6dof.insert({new_name, table_fsae_6dof.at(old_name)});
+        table_fsae_6dof.erase(old_name);
+    }
     else if ( table_track.count(old_name) != 0 )
     {
         table_track.insert({new_name, table_track.at(old_name)});
@@ -303,6 +333,12 @@ void print_variables()
         std::cout << "    -> " << car.first << std::endl;
     std::cout << std::endl;
 
+    std::cout << "Type fsae_6dof: " << table_fsae_6dof.size() << " variables" << std::endl;
+
+    for (const auto& car : table_fsae_6dof)
+        std::cout << "    -> " << car.first << std::endl;
+    std::cout << std::endl;
+
     std::cout << "Type tracks: " << table_track.size() << " variables" << std::endl;
 
     for (const auto& track : table_track)
@@ -333,6 +369,10 @@ std::string print_variable_to_std_string(const std::string& variable_name)
     else if ( table_f1_3dof.count(variable_name) != 0 )
     {
         table_f1_3dof.at(variable_name).curvilinear_scalar.xml()->print(s_out);
+    }
+    else if ( table_fsae_6dof.count(variable_name) != 0 )
+    {
+        table_fsae_6dof.at(variable_name).curvilinear_scalar.xml()->print(s_out);
     }
     else if ( table_track.count(variable_name) != 0 )
     {
@@ -424,6 +464,10 @@ double vehicle_get_output(const char* c_vehicle_name, const double* q, const dou
     {
         return vehicle_get_property_generic(table_f1_3dof.at(vehicle_name).curvilinear_scalar, q, u, s, property_name);
     }
+    else if ( table_fsae_6dof.count(vehicle_name) != 0 )
+    {
+        return vehicle_get_property_generic(table_fsae_6dof.at(vehicle_name).curvilinear_scalar, q, u, s, property_name);
+    }
     else
     {
         throw fastest_lap_exception("[ERROR] libfastestlapc::vehicle_get_property -> vehicle type is not defined");
@@ -445,6 +489,10 @@ void vehicle_save_as_xml(const char* c_vehicle_name, const char* file_name)
     else if ( table_f1_3dof.count(vehicle_name) != 0 )
     {
         table_f1_3dof.at(vehicle_name).curvilinear_scalar.xml()->save(std::string(file_name));
+    }
+    else if ( table_fsae_6dof.count(vehicle_name) != 0 )
+    {
+        table_fsae_6dof.at(vehicle_name).curvilinear_scalar.xml()->save(std::string(file_name));
     }
     else
     {
@@ -625,6 +673,9 @@ void variable_type(char* c_variable_type, const int str_len_max, const char* c_v
     else if ( table_kart_6dof.count(name) != 0 )
         type = "kart-6dof";
 
+    else if ( table_fsae_6dof.count(name) != 0 )
+        type = "fsae-6dof";
+
     else if ( table_track.count(name) != 0 )
         type = "track";
 
@@ -711,9 +762,15 @@ void vehicle_type_get_sizes(int* number_of_inputs, int* n_control, int* n_output
         *n_control   = lot2016kart_all::vehicle_ad_curvilinear::number_of_controls;
         *n_outputs   = lot2016kart_all::vehicle_ad_curvilinear{}.get_outputs_map().size();
     }
+    else if ( vehicle_type_name == "fsae-6dof" )
+    {
+        *number_of_inputs     = fsae6dof_all::vehicle_ad_curvilinear::number_of_inputs;
+        *n_control   = fsae6dof_all::vehicle_ad_curvilinear::number_of_controls;
+        *n_outputs   = fsae6dof_all::vehicle_ad_curvilinear{}.get_outputs_map().size();
+    }
     else
     {
-        throw fastest_lap_exception("[ERROR] vehicle_type_get_size_for_name -> No vehicle type with name \"" + vehicle_type_name + "\" exists. Types are \"f1-3dof\" and \"kart-6dof\"");
+        throw fastest_lap_exception("[ERROR] vehicle_type_get_size_for_name -> No vehicle type with name \"" + vehicle_type_name + "\" exists. Types are \"f1-3dof\", \"kart-6dof\", and \"fsae-6dof\"");
     }
  }
  CATCH()
@@ -764,8 +821,11 @@ void vehicle_type_get_names(char* c_key_name, char* c_state_names[], char* c_con
     } else if ( vehicle_type_name == "kart-6dof" ) {
         vehicle_type_get_names_generic<lot2016kart_all::vehicle_ad_curvilinear>(c_key_name, c_state_names, c_control_names, c_output_names, n_char);
 
+    } else if ( vehicle_type_name == "fsae-6dof" ) {
+        vehicle_type_get_names_generic<fsae6dof_all::vehicle_ad_curvilinear>(c_key_name, c_state_names, c_control_names, c_output_names, n_char);
+
     } else {
-        throw fastest_lap_exception("[ERROR] vehicle_type_get_size_for_name -> No vehicle type with name \"" + vehicle_type_name + "\" exists. Types are \"f1-3dof\" and \"kart-6dof\"");
+        throw fastest_lap_exception("[ERROR] vehicle_type_get_size_for_name -> No vehicle type with name \"" + vehicle_type_name + "\" exists. Types are \"f1-3dof\", \"kart-6dof\", and \"fsae-6dof\"");
 
     }
  }
@@ -786,6 +846,10 @@ void vehicle_get_output_variable_names(char* output_names[], const int n_outputs
     else if ( table_kart_6dof.count(vehicle_name) != 0 )
     {
         map = table_kart_6dof.at(vehicle_name).curvilinear_scalar.get_outputs_map();
+    }
+    else if ( table_fsae_6dof.count(vehicle_name) != 0 )
+    {
+        map = table_fsae_6dof.at(vehicle_name).curvilinear_scalar.get_outputs_map();
     }
     else
     {
@@ -868,6 +932,17 @@ void delete_variable(const char* c_variable_name)
     }
 
 
+    // (2b) FSAE-6dof
+    for (auto it = table_fsae_6dof.cbegin(); it != table_fsae_6dof.cend() ; )
+    {
+        if (std::regex_match(it->first.c_str(),m,re)) {
+            it = table_fsae_6dof.erase(it++);
+        } else {
+            ++it;
+        }
+    }
+
+
     // (3) Track
     for (auto it = table_track.cbegin(); it != table_track.cend() ; )
     {
@@ -913,6 +988,10 @@ void vehicle_set_parameter(const char* c_vehicle_name, const char* parameter, co
     {
         table_f1_3dof.at(vehicle_name).set_parameter(parameter, value);
     }
+    else if ( table_fsae_6dof.count(vehicle_name) != 0 )
+    {
+        table_fsae_6dof.at(vehicle_name).set_parameter(parameter, value);
+    }
  }
  CATCH()
 }
@@ -930,6 +1009,10 @@ void vehicle_declare_new_constant_parameter(const char* c_vehicle_name, const ch
     else if ( table_kart_6dof.count(vehicle_name) != 0)
     {
         table_kart_6dof.at(vehicle_name).add_parameter(std::string(parameter_path), std::string(parameter_alias), parameter_value);
+    }
+    else if ( table_fsae_6dof.count(vehicle_name) != 0)
+    {
+        table_fsae_6dof.at(vehicle_name).add_parameter(std::string(parameter_path), std::string(parameter_alias), parameter_value);
     }
     else
         throw fastest_lap_exception("Vehicle type not recognized");
@@ -976,6 +1059,10 @@ void vehicle_declare_new_variable_parameter(const char* c_vehicle_name, const ch
     else if ( table_kart_6dof.count(vehicle_name) != 0)
     {
         table_kart_6dof.at(vehicle_name).add_parameter(parameter_path, parameter_aliases, parameter_values, mesh);
+    }
+    else if ( table_fsae_6dof.count(vehicle_name) != 0)
+    {
+        table_fsae_6dof.at(vehicle_name).add_parameter(parameter_path, parameter_aliases, parameter_values, mesh);
     }
     else
         throw fastest_lap_exception("Vehicle type not recognized");
@@ -1057,6 +1144,19 @@ void propagate_vehicle(double* q, double* u, const char* c_vehicle_name, const c
             compute_propagation(table_f1_3dof.at(vehicle_name).cartesian_ad, q, u, s, ds, u_next, options);
         }
     }
+    else if ( table_fsae_6dof.count(vehicle_name) != 0 )
+    {
+        if ( use_circuit )
+        {
+            table_fsae_6dof.at(vehicle_name).curvilinear_ad.change_track(table_track.at(track_name));
+            table_fsae_6dof.at(vehicle_name).curvilinear_scalar.change_track(table_track.at(track_name));
+            compute_propagation(table_fsae_6dof.at(vehicle_name).curvilinear_ad, q, u, s, ds, u_next, options);
+        }
+        else
+        {
+            compute_propagation(table_fsae_6dof.at(vehicle_name).cartesian_ad, q, u, s, ds, u_next, options);
+        }
+    }
  }
  CATCH()
 }
@@ -1087,6 +1187,10 @@ void steady_state(double*inputs, double* controls, const char* c_vehicle_name, d
     else if ( table_f1_3dof.count(vehicle_name) != 0 )
     {
         compute_steady_state(table_f1_3dof.at(vehicle_name).cartesian_ad, inputs, controls, v, ax, ay);
+    }
+    else if ( table_fsae_6dof.count(vehicle_name) != 0 )
+    {
+        compute_steady_state(table_fsae_6dof.at(vehicle_name).cartesian_ad, inputs, controls, v, ax, ay);
     }
  }
  CATCH()
@@ -1120,6 +1224,10 @@ void gg_diagram(double* ay, double* ax_max, double* ax_min, const char* c_vehicl
     else if ( table_f1_3dof.count(vehicle_name) != 0 )
     {
         compute_gg_diagram(table_f1_3dof.at(vehicle_name).cartesian_ad, ay, ax_max, ax_min, v, n_points);
+    }
+    else if ( table_fsae_6dof.count(vehicle_name) != 0 )
+    {
+        compute_gg_diagram(table_fsae_6dof.at(vehicle_name).cartesian_ad, ay, ax_max, ax_min, v, n_points);
     }
  }
  CATCH()
@@ -1415,6 +1523,8 @@ struct Optimal_laptime_configuration
             return true;
         else if constexpr (std::is_same_v<vehicle_t,lot2016kart_all>)
             return false;
+        else if constexpr (std::is_same_v<vehicle_t,fsae6dof_all>)
+            return true;
         else
             throw fastest_lap_exception("[ERROR] get_default_control_types() not defined for this vehicle_t");
     }
@@ -1425,6 +1535,8 @@ struct Optimal_laptime_configuration
             return {"full-mesh", "dont optimize", "full-mesh", "dont optimize"};
         else if constexpr (std::is_same_v<vehicle_t,lot2016kart_all>)
             return {"full-mesh", "full-mesh"};
+        else if constexpr (std::is_same_v<vehicle_t,fsae6dof_all>)
+            return {"full-mesh", "full-mesh", "dont optimize"};
         else
             throw fastest_lap_exception("[ERROR] get_default_control_types() not defined for this vehicle_t");
     }
@@ -1435,6 +1547,8 @@ struct Optimal_laptime_configuration
             return {50.0, 20.0*8.0e-4, 20.0*8.0e-4, 0.0};
         else if constexpr (std::is_same_v<vehicle_t,lot2016kart_all>)
             return {1.0e-2, 200*200*1.0e-10};
+        else if constexpr (std::is_same_v<vehicle_t,fsae6dof_all>)
+            return {50.0, 20.0*8.0e-4, 0.0};
         else
             throw fastest_lap_exception("[ERROR] get_default_control_types() not defined for this vehicle_t");
     }
@@ -1730,6 +1844,11 @@ void optimal_laptime(const char* c_vehicle_name, const char* c_track_name, const
         compute_optimal_laptime(table_f1_3dof.at(vehicle_name), table_track.at(track_name),
                                 n_points, s, options);
     }
+    else if ( table_fsae_6dof.count(vehicle_name) != 0 )
+    {
+        compute_optimal_laptime(table_fsae_6dof.at(vehicle_name), table_track.at(track_name),
+                                n_points, s, options);
+    }
  }
  CATCH()
 }
@@ -1751,6 +1870,11 @@ void vehicle_change_track(const char* c_vehicle_name, const char* c_track_name)
     {
         table_f1_3dof.at(vehicle_name).get_curvilinear_ad_car().change_track(table_track.at(track_name));
         table_f1_3dof.at(vehicle_name).get_curvilinear_scalar_car().change_track(table_track.at(track_name));
+    }
+    else if ( table_fsae_6dof.count(vehicle_name) != 0 )
+    {
+        table_fsae_6dof.at(vehicle_name).get_curvilinear_ad_car().change_track(table_track.at(track_name));
+        table_fsae_6dof.at(vehicle_name).get_curvilinear_scalar_car().change_track(table_track.at(track_name));
     }
  }
  CATCH()

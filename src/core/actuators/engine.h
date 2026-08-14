@@ -20,7 +20,8 @@ class Engine
 
     //! Default constructor from engine path
     Engine(const std::string& path, const bool only_max_power) 
-        : _path(path), _gear_ratio(1.0), _direct_torque(false), _only_max_power(only_max_power), _maximum_power(0.0) {}
+        : _path(path), _gear_ratio(1.0), _direct_torque(false), _only_max_power(only_max_power),
+          _ev_envelope(false), _peak_torque(0.0), _maximum_power(0.0) {}
 
     // Set parameter    
     template<typename T>
@@ -55,9 +56,11 @@ class Engine
 
     sPolynomial _p;
 
-    scalar _gear_ratio;
+    scalar _gear_ratio = 1.0;
     bool _direct_torque = true;
-    bool _only_max_power;
+    bool _only_max_power = true;
+    bool _ev_envelope = false;
+    scalar _peak_torque = 0.0;
 
     Timeseries_t _maximum_power;      
 
