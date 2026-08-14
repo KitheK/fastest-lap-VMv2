@@ -26,10 +26,14 @@ static_assert(Chassis_t::input_names::MU             == 9);
 static_assert(Chassis_t::input_names::DZDT           == 10);
 static_assert(Chassis_t::input_names::DPHIDT         == 11);
 static_assert(Chassis_t::input_names::DMUDT          == 12);
-static_assert(Road_t::input_names::X                 == 13);
-static_assert(Road_t::input_names::Y                 == 14);
-static_assert(Road_t::input_names::PSI               == 15);
-static_assert(fsae6dof<scalar>::cartesian::number_of_inputs == 16);
+static_assert(Chassis_t::input_names::T_FL           == 13);
+static_assert(Chassis_t::input_names::T_FR           == 14);
+static_assert(Chassis_t::input_names::T_RL           == 15);
+static_assert(Chassis_t::input_names::T_RR           == 16);
+static_assert(Road_t::input_names::X                 == 17);
+static_assert(Road_t::input_names::Y                 == 18);
+static_assert(Road_t::input_names::PSI               == 19);
+static_assert(fsae6dof<scalar>::cartesian::number_of_inputs == 20);
 
 static_assert(Front_axle_t::control_names::STEERING == 0);
 static_assert(Chassis_t::control_names::throttle   == 1);
@@ -40,6 +44,16 @@ class fsae6dof_test : public testing::Test
 {
  protected:
     Xml_document database = {"./database/vehicles/fsae/ubco-2026-ev.xml", true};
+
+    std::array<scalar, fsae6dof<scalar>::cartesian::number_of_inputs> default_q() const
+    {
+        std::array<scalar, fsae6dof<scalar>::cartesian::number_of_inputs> q{};
+        q[Chassis_t::input_names::T_FL] = 298.15;
+        q[Chassis_t::input_names::T_FR] = 298.15;
+        q[Chassis_t::input_names::T_RL] = 298.15;
+        q[Chassis_t::input_names::T_RR] = 298.15;
+        return q;
+    }
 };
 
 TEST_F(fsae6dof_test, indexes)
@@ -50,8 +64,8 @@ TEST_F(fsae6dof_test, indexes)
     EXPECT_EQ(Rear_axle_t::input_names::KAPPA_RIGHT,  3);
     EXPECT_EQ(Chassis_t::input_names::velocity_x_mps, 4);
     EXPECT_EQ(Chassis_t::input_names::Z,              7);
-    EXPECT_EQ(Road_t::input_names::PSI,              15);
-    EXPECT_EQ(fsae6dof<scalar>::cartesian::number_of_inputs, 16);
+    EXPECT_EQ(Road_t::input_names::PSI,              19);
+    EXPECT_EQ(fsae6dof<scalar>::cartesian::number_of_inputs, 20);
     EXPECT_EQ(Front_axle_t::control_names::STEERING, 0);
     EXPECT_EQ(Chassis_t::control_names::throttle,    1);
     EXPECT_EQ(Chassis_t::control_names::brake_bias,  2);
@@ -69,6 +83,7 @@ TEST_F(fsae6dof_test, vehicle_from_xml_variable_names)
     EXPECT_EQ(q_names[Rear_axle_t::input_names::KAPPA_RIGHT],  "rear-axle.right-tire.kappa");
     EXPECT_EQ(q_names[Chassis_t::input_names::velocity_x_mps], "chassis.velocity.x");
     EXPECT_EQ(q_names[Chassis_t::input_names::Z],              "chassis.position.z");
+    EXPECT_EQ(q_names[Chassis_t::input_names::T_FL],           "chassis.tire.temperature.fl");
     EXPECT_EQ(u_names[Front_axle_t::control_names::STEERING],  "front-axle.steering-angle");
     EXPECT_EQ(u_names[Chassis_t::control_names::throttle],     "chassis.throttle");
     EXPECT_EQ(u_names[Chassis_t::control_names::brake_bias],   "chassis.brake-bias");
@@ -84,7 +99,7 @@ TEST_F(fsae6dof_test, ode_straight_running_is_finite)
 {
     fsae6dof<double>::cartesian car(database);
 
-    std::array<scalar, fsae6dof<scalar>::cartesian::number_of_inputs> q{};
+    auto q = default_q();
     q[Chassis_t::input_names::velocity_x_mps] = 20.0;
     q[Chassis_t::input_names::Z] = 0.02;
 
@@ -118,7 +133,7 @@ TEST_F(fsae6dof_test, ev_envelope_torque_limited_at_low_speed)
 {
     fsae6dof<double>::cartesian car(database);
 
-    std::array<scalar, fsae6dof<scalar>::cartesian::number_of_inputs> q{};
+    auto q = default_q();
     q[Chassis_t::input_names::velocity_x_mps] = 5.0;
     q[Chassis_t::input_names::Z] = 0.02;
 
@@ -137,7 +152,7 @@ TEST_F(fsae6dof_test, ev_envelope_power_capped)
 {
     fsae6dof<double>::cartesian car(database);
 
-    std::array<scalar, fsae6dof<scalar>::cartesian::number_of_inputs> q{};
+    auto q = default_q();
     q[Chassis_t::input_names::velocity_x_mps] = 40.0;
     q[Chassis_t::input_names::Z] = 0.02;
 
@@ -156,7 +171,7 @@ TEST_F(fsae6dof_test, battery_energy_integral_is_motor_power)
 {
     fsae6dof<double>::cartesian car(database);
 
-    std::array<scalar, fsae6dof<scalar>::cartesian::number_of_inputs> q{};
+    auto q = default_q();
     q[Chassis_t::input_names::velocity_x_mps] = 20.0;
     q[Chassis_t::input_names::Z] = 0.02;
 
@@ -175,7 +190,7 @@ TEST_F(fsae6dof_test, aero_scale_unity_at_nominal_attitude)
 {
     fsae6dof<double>::cartesian car(database);
 
-    std::array<scalar, fsae6dof<scalar>::cartesian::number_of_inputs> q{};
+    auto q = default_q();
     q[Chassis_t::input_names::velocity_x_mps] = 20.0;
     q[Chassis_t::input_names::Z] = 0.0;
 
@@ -193,7 +208,7 @@ TEST_F(fsae6dof_test, aero_cl_increases_when_heave_decreases)
 {
     fsae6dof<double>::cartesian car(database);
 
-    std::array<scalar, fsae6dof<scalar>::cartesian::number_of_inputs> q{};
+    auto q = default_q();
     q[Chassis_t::input_names::velocity_x_mps] = 20.0;
     q[Chassis_t::input_names::Z] = -0.01;
 
@@ -206,6 +221,35 @@ TEST_F(fsae6dof_test, aero_cl_increases_when_heave_decreases)
     EXPECT_GT(car.get_chassis().get_cl_scale(), 1.0);
 }
 
+TEST_F(fsae6dof_test, tire_heats_when_sliding)
+{
+    fsae6dof<double>::cartesian car(database);
+
+    auto q = default_q();
+    q[Chassis_t::input_names::velocity_x_mps] = 20.0;
+    q[Chassis_t::input_names::Z] = 0.02;
+    q[Front_axle_t::input_names::KAPPA_LEFT] = 0.15;
+    q[Front_axle_t::input_names::KAPPA_RIGHT] = 0.15;
+    q[Rear_axle_t::input_names::KAPPA_LEFT] = 0.15;
+    q[Rear_axle_t::input_names::KAPPA_RIGHT] = 0.15;
+
+    std::array<scalar, fsae6dof<scalar>::cartesian::number_of_controls> u{};
+    u[Chassis_t::control_names::brake_bias] = 0.53;
+
+    auto [states, dqdt] = car(q, u, 0.0);
+    EXPECT_GT(dqdt[Chassis_t::state_names::T_FL], 0.0);
+    EXPECT_GT(dqdt[Chassis_t::state_names::T_RL], 0.0);
+}
+
+TEST_F(fsae6dof_test, grip_scale_peaks_near_optimal_temperature)
+{
+    fsae6dof<double>::cartesian car(database);
+    const auto at_opt = car.get_chassis().grip_scale_from_temperature(353.15);
+    const auto at_amb = car.get_chassis().grip_scale_from_temperature(298.15);
+    EXPECT_NEAR(at_opt, 1.0, 1.0e-12);
+    EXPECT_LT(at_amb, at_opt);
+}
+
 TEST_F(fsae6dof_test, create_vehicle_from_xml_c_api)
 {
 #ifdef TEST_LIBFASTESTLAPC
@@ -213,7 +257,7 @@ TEST_F(fsae6dof_test, create_vehicle_from_xml_c_api)
 
     int n_inputs = 0, n_control = 0, n_outputs = 0;
     vehicle_type_get_sizes(&n_inputs, &n_control, &n_outputs, "fsae-6dof");
-    EXPECT_EQ(n_inputs, 16);
+    EXPECT_EQ(n_inputs, 20);
     EXPECT_EQ(n_control, 3);
     EXPECT_GT(n_outputs, 0);
 

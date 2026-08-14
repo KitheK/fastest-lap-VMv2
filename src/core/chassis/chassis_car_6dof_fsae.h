@@ -13,8 +13,31 @@ class Chassis_car_6dof_fsae : public Chassis_car_6dof<Timeseries_t,FrontAxle_t,R
     using Front_axle_type = FrontAxle_t;
     using Rear_axle_type  = RearAxle_t;
 
-    struct input_names : public base_type::input_names {};
-    struct state_names : public base_type::state_names {};
+    struct input_names : public base_type::input_names
+    {
+        enum
+        {
+            T_FL = base_type::input_names::end,
+            T_FR,
+            T_RL,
+            T_RR,
+            end
+        };
+    };
+
+    struct state_names : public base_type::state_names
+    {
+        enum
+        {
+            T_FL = input_names::T_FL,
+            T_FR = input_names::T_FR,
+            T_RL = input_names::T_RL,
+            T_RR = input_names::T_RR,
+            end
+        };
+    };
+
+    static_assert(static_cast<size_t>(input_names::end) == static_cast<size_t>(state_names::end));
 
     struct control_names : public base_type::control_names
     {
@@ -33,6 +56,7 @@ class Chassis_car_6dof_fsae : public Chassis_car_6dof<Timeseries_t,FrontAxle_t,R
     {
         read_parameters(database, path, get_parameters(), __used_parameters);
         _brake_bias = _brake_bias_0;
+        _tire_temperature = {_t_ambient, _t_ambient, _t_ambient, _t_ambient};
     }
 
     Chassis_car_6dof_fsae(Xml_document& database)
@@ -72,11 +96,20 @@ class Chassis_car_6dof_fsae : public Chassis_car_6dof<Timeseries_t,FrontAxle_t,R
         std::array<scalar, number_of_controls>& control_ub
     ) const;
 
+    template<size_t number_of_states>
+    void get_state_and_state_derivative(std::array<Timeseries_t, number_of_states>& state,
+                                        std::array<Timeseries_t, number_of_states>& dstate_dt) const;
+
+    Timeseries_t grip_scale_from_temperature(const Timeseries_t& temperature) const;
+
     static std::string type() { return "chassis_car_6dof_fsae"; }
 
     const Timeseries_t& get_cl_scale() const { return _cl_scale; }
     const Timeseries_t& get_cd_scale() const { return _cd_scale; }
     const Timeseries_t& get_front_aero_distribution() const { return _front_aero_distribution; }
+    const scalar& get_t_ambient() const { return _t_ambient; }
+    const Timeseries_t& get_tire_temperature(size_t i) const { return _tire_temperature[i]; }
+    const Timeseries_t& get_tire_temperature_dot(size_t i) const { return _tire_temperature_dot[i]; }
 
     std::unordered_map<std::string,Timeseries_t> get_outputs_map() const
     {
@@ -87,6 +120,10 @@ class Chassis_car_6dof_fsae : public Chassis_car_6dof<Timeseries_t,FrontAxle_t,R
         map[base_type::get_name() + ".attitude.heave"] = this->_z;
         map[base_type::get_name() + ".attitude.roll"] = this->_phi;
         map[base_type::get_name() + ".attitude.pitch"] = this->_mu;
+        map[base_type::get_name() + ".tire.temperature.fl"] = _tire_temperature[0];
+        map[base_type::get_name() + ".tire.temperature.fr"] = _tire_temperature[1];
+        map[base_type::get_name() + ".tire.temperature.rl"] = _tire_temperature[2];
+        map[base_type::get_name() + ".tire.temperature.rr"] = _tire_temperature[3];
         return map;
     }
 
@@ -105,6 +142,13 @@ class Chassis_car_6dof_fsae : public Chassis_car_6dof<Timeseries_t,FrontAxle_t,R
     Timeseries_t _cl_scale = 1.0;
     Timeseries_t _cd_scale = 1.0;
     Timeseries_t _front_aero_distribution = 0.5;
+    scalar _thermal_capacity = 900.0;
+    scalar _thermal_cooling = 15.0;
+    scalar _t_ambient = 298.15;
+    scalar _t_optimal = 353.15;
+    scalar _grip_sensitivity = 0.3;
+    std::array<Timeseries_t,4> _tire_temperature = {_t_ambient, _t_ambient, _t_ambient, _t_ambient};
+    std::array<Timeseries_t,4> _tire_temperature_dot = {0.0, 0.0, 0.0, 0.0};
 
     DECLARE_PARAMS(
         { "pressure_center", _x_aero },
@@ -113,6 +157,11 @@ class Chassis_car_6dof_fsae : public Chassis_car_6dof<Timeseries_t,FrontAxle_t,R
         { "aero-maps/dCl_dmu", _dCl_dmu },
         { "aero-maps/dCd_dz", _dCd_dz },
         { "aero-maps/dCd_dmu", _dCd_dmu },
+        { "tire-thermal/capacity", _thermal_capacity },
+        { "tire-thermal/cooling", _thermal_cooling },
+        { "tire-thermal/t-ambient", _t_ambient },
+        { "tire-thermal/t-optimal", _t_optimal },
+        { "tire-thermal/grip-sensitivity", _grip_sensitivity },
     );
 };
 

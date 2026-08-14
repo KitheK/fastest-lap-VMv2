@@ -76,7 +76,8 @@ void Axle_car_6dof_fsae<Timeseries_t,Tire_left_t,Tire_right_t,Axle_mode,state_st
 template<typename Timeseries_t, typename Tire_left_t, typename Tire_right_t, template<size_t,size_t> typename Axle_mode, size_t state_start, size_t control_start>
 void Axle_car_6dof_fsae<Timeseries_t,Tire_left_t,Tire_right_t,Axle_mode,state_start,control_start>::update(
     const Vector3d<Timeseries_t>& x0, const Vector3d<Timeseries_t>& v0, Timeseries_t phi, Timeseries_t dphi,
-    Timeseries_t throttle, Timeseries_t brake_bias, const Frame<Timeseries_t>& road_frame)
+    Timeseries_t throttle, Timeseries_t brake_bias, const Frame<Timeseries_t>& road_frame,
+    Timeseries_t grip_left, Timeseries_t grip_right)
 {
     base_type::get_frame().set_origin(x0, v0, Frame<Timeseries_t>::Frame_velocity_types::parent_frame);
 
@@ -124,6 +125,8 @@ void Axle_car_6dof_fsae<Timeseries_t,Tire_left_t,Tire_right_t,Axle_mode,state_st
 
     tire_l.update(Fz_left, _kappa_dimensionless_left, road_frame);
     tire_r.update(Fz_right, _kappa_dimensionless_right, road_frame);
+    tire_l.scale_xy_forces(grip_left);
+    tire_r.scale_xy_forces(grip_right);
 
     const Timeseries_t& omega_left = tire_l.get_omega();
     const Timeseries_t& omega_right = tire_r.get_omega();

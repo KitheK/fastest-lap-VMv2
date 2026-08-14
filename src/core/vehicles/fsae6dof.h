@@ -136,6 +136,11 @@ class fsae6dof
             q[Dynamic_model_t::Chassis_type::input_names::DZDT] = 0.0;
             q[Dynamic_model_t::Chassis_type::input_names::DPHIDT] = 0.0;
             q[Dynamic_model_t::Chassis_type::input_names::DMUDT] = 0.0;
+            const auto T_amb = this->get_chassis().get_t_ambient();
+            q[Dynamic_model_t::Chassis_type::input_names::T_FL] = T_amb;
+            q[Dynamic_model_t::Chassis_type::input_names::T_FR] = T_amb;
+            q[Dynamic_model_t::Chassis_type::input_names::T_RL] = T_amb;
+            q[Dynamic_model_t::Chassis_type::input_names::T_RR] = T_amb;
             q[Dynamic_model_t::Road_type::input_names::X] = 0.0;
             q[Dynamic_model_t::Road_type::input_names::Y] = 0.0;
             q[Dynamic_model_t::Road_type::input_names::PSI] = psi;

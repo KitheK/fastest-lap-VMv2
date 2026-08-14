@@ -128,7 +128,8 @@ class Axle_car_6dof_fsae : public Axle<Timeseries_t,std::tuple<Tire_left_t,Tire_
                                           std::array<Timeseries_t,number_of_inputs>& inputs);
 
     void update(const Vector3d<Timeseries_t>& x0, const Vector3d<Timeseries_t>& v0, Timeseries_t phi, Timeseries_t dphi,
-                Timeseries_t throttle, Timeseries_t brake_bias, const Frame<Timeseries_t>& road_frame);
+                Timeseries_t throttle, Timeseries_t brake_bias, const Frame<Timeseries_t>& road_frame,
+                Timeseries_t grip_left, Timeseries_t grip_right);
 
     const Timeseries_t& get_steering_angle() const { return _delta; }
     const Timeseries_t& get_dangular_momentum_dt_left() const { return _dangular_momentum_dt_left; }

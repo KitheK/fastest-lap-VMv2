@@ -1,6 +1,8 @@
 #ifndef CHASSIS_CAR_6DOF_FSAE_HPP
 #define CHASSIS_CAR_6DOF_FSAE_HPP
 
+#include <array>
+
 template<typename Timeseries_t, typename FrontAxle_t, typename RearAxle_t, size_t state_start, size_t control_start>
 inline void Chassis_car_6dof_fsae<Timeseries_t,FrontAxle_t,RearAxle_t,state_start,control_start>::update(
     const Vector3d<Timeseries_t>& ground_position_vector_m,
@@ -20,10 +22,15 @@ inline void Chassis_car_6dof_fsae<Timeseries_t,FrontAxle_t,RearAxle_t,state_star
 
     this->get_chassis_frame().set_origin(this->get_com_position(), this->get_com_velocity(), Frame<Timeseries_t>::Frame_velocity_types::parent_frame);
 
+    const Timeseries_t grip_fl = grip_scale_from_temperature(_tire_temperature[0]);
+    const Timeseries_t grip_fr = grip_scale_from_temperature(_tire_temperature[1]);
+    const Timeseries_t grip_rl = grip_scale_from_temperature(_tire_temperature[2]);
+    const Timeseries_t grip_rr = grip_scale_from_temperature(_tire_temperature[3]);
+
     front_axle.update(this->get_front_axle_position(), this->get_front_axle_velocity(), this->_phi, this->_dphi,
-                      _throttle, _brake_bias, road_frame);
+                      _throttle, _brake_bias, road_frame, grip_fl, grip_fr);
     rear_axle.update(this->get_rear_axle_position(), this->get_rear_axle_velocity(), this->_phi, this->_dphi,
-                     _throttle, 1.0 - _brake_bias, road_frame);
+                     _throttle, 1.0 - _brake_bias, road_frame, grip_rl, grip_rr);
 
     const Matrix3x3<Timeseries_t> Q_front = front_axle.get_frame().get_rotation_matrix(road_frame);
     const Matrix3x3<Timeseries_t> Q_rear  = rear_axle.get_frame().get_rotation_matrix(road_frame);
@@ -66,6 +73,15 @@ inline void Chassis_car_6dof_fsae<Timeseries_t,FrontAxle_t,RearAxle_t,state_star
     this->_d2phi = d2phi[X];
     this->_d2mu  = d2phi[Y];
     this->_yaw_rate_dot_radps2 = d2phi[Z];
+
+    const std::array<Timeseries_t,4> dissipation = {
+        sqrt(front_axle.template get_tire<0>().get_dissipation()*front_axle.template get_tire<0>().get_dissipation() + 1.0e-24),
+        sqrt(front_axle.template get_tire<1>().get_dissipation()*front_axle.template get_tire<1>().get_dissipation() + 1.0e-24),
+        sqrt(rear_axle.template get_tire<0>().get_dissipation()*rear_axle.template get_tire<0>().get_dissipation() + 1.0e-24),
+        sqrt(rear_axle.template get_tire<1>().get_dissipation()*rear_axle.template get_tire<1>().get_dissipation() + 1.0e-24)
+    };
+    for (size_t i = 0; i < 4; ++i)
+        _tire_temperature_dot[i] = (dissipation[i] - _thermal_cooling * (_tire_temperature[i] - _t_ambient)) / _thermal_capacity;
 }
 
 template<typename Timeseries_t, typename FrontAxle_t, typename RearAxle_t, size_t state_start, size_t control_start>
@@ -76,6 +92,10 @@ void Chassis_car_6dof_fsae<Timeseries_t,FrontAxle_t,RearAxle_t,state_start,contr
     base_type::set_state_and_control_names(inputs, controls);
     controls[control_names::throttle] = "chassis.throttle";
     controls[control_names::brake_bias] = "chassis.brake-bias";
+    inputs[input_names::T_FL] = "chassis.tire.temperature.fl";
+    inputs[input_names::T_FR] = "chassis.tire.temperature.fr";
+    inputs[input_names::T_RL] = "chassis.tire.temperature.rl";
+    inputs[input_names::T_RR] = "chassis.tire.temperature.rr";
 }
 
 template<typename Timeseries_t, typename FrontAxle_t, typename RearAxle_t, size_t state_start, size_t control_start>
@@ -86,6 +106,10 @@ void Chassis_car_6dof_fsae<Timeseries_t,FrontAxle_t,RearAxle_t,state_start,contr
     base_type::set_state_and_controls(inputs, controls);
     _throttle   = controls[control_names::throttle];
     _brake_bias = controls[control_names::brake_bias];
+    _tire_temperature[0] = inputs[input_names::T_FL];
+    _tire_temperature[1] = inputs[input_names::T_FR];
+    _tire_temperature[2] = inputs[input_names::T_RL];
+    _tire_temperature[3] = inputs[input_names::T_RR];
 }
 
 template<typename Timeseries_t, typename FrontAxle_t, typename RearAxle_t, size_t state_start, size_t control_start>
@@ -109,6 +133,45 @@ void Chassis_car_6dof_fsae<Timeseries_t,FrontAxle_t,RearAxle_t,state_start,contr
 
     // Wheel radius is larger than the kart default used by Chassis_car_6dof.
     inputs_ub[input_names::Z] = 0.21;
+
+    inputs_def[input_names::T_FL] = _t_ambient;
+    inputs_def[input_names::T_FR] = _t_ambient;
+    inputs_def[input_names::T_RL] = _t_ambient;
+    inputs_def[input_names::T_RR] = _t_ambient;
+    inputs_lb[input_names::T_FL] = 250.0;
+    inputs_lb[input_names::T_FR] = 250.0;
+    inputs_lb[input_names::T_RL] = 250.0;
+    inputs_lb[input_names::T_RR] = 250.0;
+    inputs_ub[input_names::T_FL] = 420.0;
+    inputs_ub[input_names::T_FR] = 420.0;
+    inputs_ub[input_names::T_RL] = 420.0;
+    inputs_ub[input_names::T_RR] = 420.0;
+}
+
+template<typename Timeseries_t, typename FrontAxle_t, typename RearAxle_t, size_t state_start, size_t control_start>
+template<size_t number_of_states>
+void Chassis_car_6dof_fsae<Timeseries_t,FrontAxle_t,RearAxle_t,state_start,control_start>::get_state_and_state_derivative(
+    std::array<Timeseries_t, number_of_states>& state,
+    std::array<Timeseries_t, number_of_states>& dstate_dt) const
+{
+    base_type::get_state_and_state_derivative(state, dstate_dt);
+    state[state_names::T_FL] = _tire_temperature[0];
+    state[state_names::T_FR] = _tire_temperature[1];
+    state[state_names::T_RL] = _tire_temperature[2];
+    state[state_names::T_RR] = _tire_temperature[3];
+    dstate_dt[state_names::T_FL] = _tire_temperature_dot[0];
+    dstate_dt[state_names::T_FR] = _tire_temperature_dot[1];
+    dstate_dt[state_names::T_RL] = _tire_temperature_dot[2];
+    dstate_dt[state_names::T_RR] = _tire_temperature_dot[3];
+}
+
+template<typename Timeseries_t, typename FrontAxle_t, typename RearAxle_t, size_t state_start, size_t control_start>
+Timeseries_t Chassis_car_6dof_fsae<Timeseries_t,FrontAxle_t,RearAxle_t,state_start,control_start>::grip_scale_from_temperature(
+    const Timeseries_t& temperature) const
+{
+    const Timeseries_t dt = (temperature - _t_optimal) / _t_optimal;
+    const Timeseries_t scale = 1.0 - _grip_sensitivity * dt * dt;
+    return max(Timeseries_t(0.5), min(Timeseries_t(1.1), scale));
 }
 
 #endif
