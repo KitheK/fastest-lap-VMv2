@@ -230,7 +230,7 @@ def _draw_ubco_car(ax, x: float, y: float, yaw: float, delta: float = 0.0, scale
 def plot_hud_frame(view: LapView, path: str | Path, index: Optional[int] = None, cam_height: float = 72.0) -> Path:
     """Single MATLAB-style dashboard frame (world-aligned follow-cam)."""
     plt = _setup_mpl()
-    from matplotlib.patches import Polygon, Circle, Rectangle, FancyBboxPatch
+    from matplotlib.patches import Polygon, Circle, Rectangle
     from matplotlib.collections import LineCollection
     import numpy as np
 
@@ -264,25 +264,20 @@ def plot_hud_frame(view: LapView, path: str | Path, index: Optional[int] = None,
         segs = np.concatenate([pts[:-1, None, :], pts[1:, None, :]], axis=1)
         ax.add_collection(LineCollection(segs, colors=cols, linewidths=3.2, zorder=3))
 
-    _draw_ubco_car(ax, cx, cy, yaw, math.radians(view.delta[i]))
+    _draw_ubco_car(ax, cx, cy, yaw, math.radians(view.delta[i]), scale=1.35)
     aspect = 16 / 9
+    ax.set_aspect("equal")
     ax.set_xlim(cx - 0.5 * cam_height * aspect, cx + 0.5 * cam_height * aspect)
     ax.set_ylim(cy - 0.5 * cam_height, cy + 0.5 * cam_height)
-    ax.set_aspect("equal")
-
-    fig.patches.extend(
-        [
-            FancyBboxPatch((0.015, 0.55), 0.23, 0.38, transform=fig.transFigure, facecolor="white", edgecolor="black", lw=1.6, boxstyle="square,pad=0"),
-            FancyBboxPatch((0.255, 0.55), 0.18, 0.38, transform=fig.transFigure, facecolor="white", edgecolor="black", lw=1.6, boxstyle="square,pad=0"),
-            FancyBboxPatch((0.445, 0.55), 0.18, 0.38, transform=fig.transFigure, facecolor="white", edgecolor="black", lw=1.6, boxstyle="square,pad=0"),
-            FancyBboxPatch((0.635, 0.55), 0.35, 0.38, transform=fig.transFigure, facecolor="white", edgecolor="black", lw=1.6, boxstyle="square,pad=0"),
-        ]
-    )
+    ax.set_autoscale_on(False)
 
     fig.text(0.02, 0.96, f"{view.vehicle_name}  ·  {view.track_name}", fontsize=13, fontweight="bold")
     fig.text(0.02, 0.035, f"t = {view.time[i]:.2f} s / {view.lap_time:.3f} s    {view.v[i]*3.6:.1f} km/h", fontsize=11)
 
     axt = fig.add_axes([0.03, 0.57, 0.20, 0.34], facecolor="white")
+    for spine in axt.spines.values():
+        spine.set_color("black")
+        spine.set_linewidth(1.6)
     axt.set_xlim(-1.6, 2.8)
     axt.set_ylim(-1.4, 1.4)
     axt.set_aspect("equal")
@@ -298,6 +293,9 @@ def plot_hud_frame(view: LapView, path: str | Path, index: Optional[int] = None,
         axt.text(1.95, y0 + 0.1, f"{name}  {fz:.0f} N", fontsize=7)
 
     axb = fig.add_axes([0.27, 0.57, 0.15, 0.34], facecolor="white")
+    for spine in axb.spines.values():
+        spine.set_color("black")
+        spine.set_linewidth(1.6)
     axb.set_xlim(0, 3.2)
     axb.set_ylim(-0.2, 1.2)
     axb.axis("off")
@@ -313,6 +311,9 @@ def plot_hud_frame(view: LapView, path: str | Path, index: Optional[int] = None,
     axb.plot([2.4, 2.4 + 0.42 * math.sin(ang)], [0.55, 0.55 + 0.42 * math.cos(ang)], color=ORANGE, lw=2)
 
     axg = fig.add_axes([0.46, 0.57, 0.16, 0.34], facecolor="white")
+    for spine in axg.spines.values():
+        spine.set_color("black")
+        spine.set_linewidth(1.6)
     if view.env_ay:
         ay_p = view.env_ay
         ay_m = [-a for a in ay_p]
@@ -327,6 +328,9 @@ def plot_hud_frame(view: LapView, path: str | Path, index: Optional[int] = None,
     axg.tick_params(labelsize=7)
 
     axtel = fig.add_axes([0.65, 0.57, 0.32, 0.34], facecolor="#0d1117")
+    for spine in axtel.spines.values():
+        spine.set_color("black")
+        spine.set_linewidth(1.6)
     t0 = view.time[i] - 20.0
     j0 = next((j for j, t in enumerate(view.time) if t >= t0), 0)
     tt = view.time[j0 : i + 1]

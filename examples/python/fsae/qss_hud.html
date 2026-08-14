@@ -246,6 +246,7 @@ function drawTrack(f){
 
   ctx.translate(x, y);
   ctx.rotate(yaw);
+  ctx.scale(1.45, 1.45);
   drawUbcoCar(ctx, samp(D.delta,f)*Math.PI/180);
   ctx.restore();
 }
