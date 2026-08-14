@@ -74,6 +74,22 @@ class Chassis_car_6dof_fsae : public Chassis_car_6dof<Timeseries_t,FrontAxle_t,R
 
     static std::string type() { return "chassis_car_6dof_fsae"; }
 
+    const Timeseries_t& get_cl_scale() const { return _cl_scale; }
+    const Timeseries_t& get_cd_scale() const { return _cd_scale; }
+    const Timeseries_t& get_front_aero_distribution() const { return _front_aero_distribution; }
+
+    std::unordered_map<std::string,Timeseries_t> get_outputs_map() const
+    {
+        auto map = base_type::get_outputs_map();
+        map[base_type::get_name() + ".aerodynamics.cl_scale"] = _cl_scale;
+        map[base_type::get_name() + ".aerodynamics.cd_scale"] = _cd_scale;
+        map[base_type::get_name() + ".aerodynamics.front_distribution"] = _front_aero_distribution;
+        map[base_type::get_name() + ".attitude.heave"] = this->_z;
+        map[base_type::get_name() + ".attitude.roll"] = this->_phi;
+        map[base_type::get_name() + ".attitude.pitch"] = this->_mu;
+        return map;
+    }
+
     bool is_ready() const { return base_type::is_ready() &&
         std::all_of(__used_parameters.begin(), __used_parameters.end(), [](const auto& v) -> auto { return v; }); }
 
@@ -82,10 +98,21 @@ class Chassis_car_6dof_fsae : public Chassis_car_6dof<Timeseries_t,FrontAxle_t,R
     Timeseries_t _brake_bias_0 = 0.5;
     Timeseries_t _throttle = 0.0;
     Timeseries_t _brake_bias = 0.5;
+    scalar _dCl_dz = 0.0;
+    scalar _dCl_dmu = 0.0;
+    scalar _dCd_dz = 0.0;
+    scalar _dCd_dmu = 0.0;
+    Timeseries_t _cl_scale = 1.0;
+    Timeseries_t _cd_scale = 1.0;
+    Timeseries_t _front_aero_distribution = 0.5;
 
     DECLARE_PARAMS(
         { "pressure_center", _x_aero },
         { "brake_bias", _brake_bias_0 },
+        { "aero-maps/dCl_dz", _dCl_dz },
+        { "aero-maps/dCl_dmu", _dCl_dmu },
+        { "aero-maps/dCd_dz", _dCd_dz },
+        { "aero-maps/dCd_dmu", _dCd_dmu },
     );
 };
 

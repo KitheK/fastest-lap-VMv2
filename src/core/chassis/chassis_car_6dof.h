@@ -168,6 +168,10 @@ class Chassis_car_6dof : public Chassis<Timeseries_t,FrontAxle_t, RearAxle_t, st
 
     Vector3d<Timeseries_t> get_rear_axle_velocity() const { return {0.0, 0.0, - _dmu*_x_rear_axle[0] }; }
 
+    const Timeseries_t& get_heave() const { return _z; }
+    const Timeseries_t& get_roll() const { return _phi; }
+    const Timeseries_t& get_pitch() const { return _mu; }
+
     //! Return a mechanical/geometrical parameter by name
     //! @param[in] parameter_name: name of the parameter
     scalar get_parameter(const std::string& parameter_name) const;

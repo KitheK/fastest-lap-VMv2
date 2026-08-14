@@ -63,6 +63,12 @@
             <cl>3.77</cl>
             <area units="m2">1.14</area>
         </aerodynamics>
+        <aero-maps>
+            <dCl_dz>-8.0</dCl_dz>
+            <dCl_dmu>2.0</dCl_dmu>
+            <dCd_dz>-2.0</dCd_dz>
+            <dCd_dmu>0.5</dCd_dmu>
+        </aero-maps>
         <!-- 48% front aero → pressure center 0.053 m behind CoM -->
         <pressure_center>-0.053 0.0 -0.25</pressure_center>
         <brake_bias>0.53</brake_bias>

@@ -42,9 +42,17 @@ inline void Chassis_car_6dof_fsae<Timeseries_t,FrontAxle_t,RearAxle_t,state_star
     this->_total_torque_Nm = T_front + cross(x_front, F_front) + T_rear + cross(x_rear, F_rear);
 
     const auto aerodynamic_forces = this->get_aerodynamic_force();
-    const auto F_aero = aerodynamic_forces.lift + aerodynamic_forces.drag;
+    _cl_scale = 1.0 + _dCl_dz * this->_z + _dCl_dmu * this->_mu;
+    _cd_scale = 1.0 + _dCd_dz * this->_z + _dCd_dmu * this->_mu;
+    _cl_scale = max(Timeseries_t(0.2), min(Timeseries_t(3.0), _cl_scale));
+    _cd_scale = max(Timeseries_t(0.2), min(Timeseries_t(3.0), _cd_scale));
+
+    const auto F_aero = aerodynamic_forces.lift * _cl_scale + aerodynamic_forces.drag * _cd_scale;
     this->_total_force_N += F_aero;
     this->_total_torque_Nm += cross(_x_aero + Vector3d<Timeseries_t>(0.0, 0.0, this->_z), F_aero);
+
+    const scalar wheelbase = this->_x_front_axle.x() - this->_x_rear_axle.x();
+    _front_aero_distribution = (_x_aero.x() - this->_x_rear_axle.x()) / wheelbase;
 
     const Vector3d<Timeseries_t> dvdt = -this->Newton_lhs() + this->_total_force_N/m;
 

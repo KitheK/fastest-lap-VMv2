@@ -171,6 +171,41 @@ TEST_F(fsae6dof_test, battery_energy_integral_is_motor_power)
     EXPECT_NEAR(integrals[0], car.get_chassis().get_rear_axle().get_engine().get_power()*1.0e-6, 1.0e-12);
 }
 
+TEST_F(fsae6dof_test, aero_scale_unity_at_nominal_attitude)
+{
+    fsae6dof<double>::cartesian car(database);
+
+    std::array<scalar, fsae6dof<scalar>::cartesian::number_of_inputs> q{};
+    q[Chassis_t::input_names::velocity_x_mps] = 20.0;
+    q[Chassis_t::input_names::Z] = 0.0;
+
+    std::array<scalar, fsae6dof<scalar>::cartesian::number_of_controls> u{};
+    u[Chassis_t::control_names::brake_bias] = 0.53;
+
+    (void)car(q, u, 0.0);
+
+    EXPECT_NEAR(car.get_chassis().get_cl_scale(), 1.0, 1.0e-12);
+    EXPECT_NEAR(car.get_chassis().get_cd_scale(), 1.0, 1.0e-12);
+    EXPECT_NEAR(car.get_chassis().get_front_aero_distribution(), 0.48, 0.02);
+}
+
+TEST_F(fsae6dof_test, aero_cl_increases_when_heave_decreases)
+{
+    fsae6dof<double>::cartesian car(database);
+
+    std::array<scalar, fsae6dof<scalar>::cartesian::number_of_inputs> q{};
+    q[Chassis_t::input_names::velocity_x_mps] = 20.0;
+    q[Chassis_t::input_names::Z] = -0.01;
+
+    std::array<scalar, fsae6dof<scalar>::cartesian::number_of_controls> u{};
+    u[Chassis_t::control_names::brake_bias] = 0.53;
+
+    (void)car(q, u, 0.0);
+
+    EXPECT_NEAR(car.get_chassis().get_cl_scale(), 1.0 + 8.0*0.01, 1.0e-12);
+    EXPECT_GT(car.get_chassis().get_cl_scale(), 1.0);
+}
+
 TEST_F(fsae6dof_test, create_vehicle_from_xml_c_api)
 {
 #ifdef TEST_LIBFASTESTLAPC
