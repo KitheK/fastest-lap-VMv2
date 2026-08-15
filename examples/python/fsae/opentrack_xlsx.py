@@ -107,9 +107,14 @@ def mesh_opentrack(
     mesh_size: float = 1.0,
     half_width: float = 1.5,
 ) -> OpenTrackMesh:
-    """Rebuild the OpenTRACK racing line at a uniform mesh (default 1 m)."""
+    """Rebuild the OpenTRACK racing line at a uniform mesh (default 1 m).
+
+    Closed tracks get OpenTRACK.m's linear start/finish XY correction so the
+    map joins; yaw/kappa are then taken from the closed polyline.
+    """
     info = read_opentrack_info(path)
     segments = read_opentrack_shape(path)
+    closed = info.configuration.lower().startswith("closed")
 
     # Coarse curvature samples at segment midpoints (corners) and ends (straights).
     s_coarse: List[float] = []
@@ -130,9 +135,10 @@ def mesh_opentrack(
             k_coarse.append(k)
         s_end += length
     L = s_end
-    if info.configuration.lower().startswith("closed") and (not s_coarse or s_coarse[-1] < L - 1.0e-9):
+    if closed and (not s_coarse or s_coarse[-1] < L - 1.0e-9):
         s_coarse.append(L)
         k_coarse.append(k_coarse[0] if k_coarse else 0.0)
+    s_coarse, k_coarse = _unique_samples(s_coarse, k_coarse)
 
     n = int(math.floor(L / mesh_size)) + 1
     s = [i * mesh_size for i in range(n)]
@@ -147,7 +153,7 @@ def mesh_opentrack(
     for i in range(len(s) - 1):
         heading.append(heading[-1] + 0.5 * (kappa[i] + kappa[i + 1]) * ds[i])
 
-    if info.configuration.lower().startswith("closed") and L > 0.0:
+    if closed and L > 0.0:
         wrap = heading[-1] - round(heading[-1] / (2.0 * math.pi)) * 2.0 * math.pi
         heading = [h - wrap * si / L for h, si in zip(heading, s)]
         heading = [h - heading[0] for h in heading]
@@ -165,9 +171,55 @@ def mesh_opentrack(
         x.append(x[-1] + step * math.cos(heading[i]))
         y.append(y[-1] + step * math.sin(heading[i]))
 
+    if closed and L > 0.0 and len(x) > 1:
+        dx_close = x[0] - x[-1]
+        dy_close = y[0] - y[-1]
+        x = [xi + si / L * dx_close for xi, si in zip(x, s)]
+        y = [yi + si / L * dy_close for yi, si in zip(y, s)]
+        x[-1], y[-1] = x[0], y[0]
+        heading, kappa = _heading_kappa_from_xy(s, x, y, closed=True)
+
     nl = [half_width] * len(s)
     nr = [half_width] * len(s)
     return OpenTrackMesh(info=info, s=s, x=x, y=y, yaw=heading, kappa=kappa, nl=nl, nr=nr)
+
+
+def _unique_samples(xp: Sequence[float], yp: Sequence[float]) -> Tuple[List[float], List[float]]:
+    xs: List[float] = []
+    ys: List[float] = []
+    for x, y in zip(xp, yp):
+        if xs and abs(x - xs[-1]) < 1.0e-12:
+            ys[-1] = float(y)
+            continue
+        xs.append(float(x))
+        ys.append(float(y))
+    return xs, ys
+
+
+def _wrap_pi(angle: float) -> float:
+    while angle > math.pi:
+        angle -= 2.0 * math.pi
+    while angle < -math.pi:
+        angle += 2.0 * math.pi
+    return angle
+
+
+def _heading_kappa_from_xy(
+    s: Sequence[float], x: Sequence[float], y: Sequence[float], closed: bool
+) -> Tuple[List[float], List[float]]:
+    n = len(s)
+    heading = [0.0] * n
+    for i in range(n - 1):
+        heading[i] = math.atan2(y[i + 1] - y[i], x[i + 1] - x[i])
+    heading[-1] = heading[0] if closed and n > 1 else heading[-2] if n > 1 else 0.0
+    for i in range(1, n):
+        heading[i] = heading[i - 1] + _wrap_pi(heading[i] - heading[i - 1])
+    kappa = [0.0] * n
+    for i in range(1, n):
+        kappa[i] = (heading[i] - heading[i - 1]) / max(s[i] - s[i - 1], 1.0e-12)
+    if closed and n > 1:
+        kappa[0] = kappa[-1]
+    return heading, kappa
 
 
 def _interp(xp: Sequence[float], yp: Sequence[float], x: float) -> float:

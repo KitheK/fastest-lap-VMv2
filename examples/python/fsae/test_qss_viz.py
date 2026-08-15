@@ -70,8 +70,49 @@ class TestQssViz(unittest.TestCase):
             self.assertIn("canvas", text)
             self.assertIn("FSAE Skidpad", text)
             self.assertIn("requestAnimationFrame", text)
-            self.assertIn("D.yaw", text)
+            self.assertIn("drawUbcoCar", text)
+            self.assertIn("buildUbcoCar", text)
+            self.assertIn("camHeight", text)
+            self.assertIn("D.xl", text)
+            self.assertIn("grid-template-columns: 1fr 380px", text)
+            self.assertIn("overflow-y:auto", text)
+            self.assertIn("Tires", text)
+            self.assertIn("tire-fl", text)
+            self.assertIn("Fz", text)
+            self.assertIn("drawDriver", text)
+            self.assertIn("TPS", text)
+            self.assertIn("BPS", text)
+            self.assertIn("telem-filters", text)
+            self.assertIn('data-ch="v"', text)
+            self.assertIn('data-ch="tps"', text)
+            self.assertIn("no channels selected", text)
+            self.assertIn("addEventListener('input'", text)
+            self.assertIn("addEventListener('change'", text)
+            self.assertIn("setLineDash([1.6, 1.4])", text)
+            self.assertIn("translate(w/2, h/2)", text)
+            self.assertNotIn("Math.PI/2 - yaw", text)
             self.assertIn(str(round(view.lap_time, 3)).split(".")[0], text)
+
+    def test_2019_endurance_qss_artifacts(self) -> None:
+        xlsx = Path(__file__).resolve().parents[3] / "database/tracks/fsae_2019_endurance/2019_endurance.xlsx"
+        if not xlsx.is_file():
+            self.skipTest("2019_endurance.xlsx not in the tree")
+        with tempfile.TemporaryDirectory() as tmp:
+            mesh = mesh_opentrack(xlsx, mesh_size=5.0)
+            result = qss_lap(mesh, _table(), v_cap=30.0)
+            self.assertGreater(result.lap_time, 40.0)
+            self.assertLess(result.lap_time, 400.0)
+            view = reconstruct_lap(
+                result, mesh, _table(), vehicle_name="UBCO 2026 EV", track_name=mesh.info.name
+            )
+            html = write_hud_html(view, Path(tmp) / "hud.html")
+            text = html.read_text(encoding="utf-8")
+            self.assertIn("2019 Endurance", text)
+            self.assertIn("drawUbcoCar", text)
+            self.assertIn("buildUbcoCar", text)
+            self.assertIn("Tires", text)
+            self.assertIn("tire-fl", text)
+            self.assertGreater(max(view.s), 1800.0)
 
 
 if __name__ == "__main__":

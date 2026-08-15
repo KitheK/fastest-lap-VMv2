@@ -4,7 +4,7 @@
     python3 examples/python/fsae/run_qss.py \\
         --vehicle-xlsx database/vehicles/fsae/ubco-2026-ev.xlsx \\
         --vehicle-xml  database/vehicles/fsae/ubco-2026-ev.xml \\
-        --track-xlsx   database/tracks/fsae_skidpad/fsae-skidpad.xlsx \\
+        --track-xlsx   database/tracks/fsae_2019_endurance/2019_endurance.xlsx \\
         -o /tmp/qss_out
 """
 
@@ -50,13 +50,18 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--vehicle-xlsx", type=Path, default=_ROOT / "database/vehicles/fsae/ubco-2026-ev.xlsx")
     parser.add_argument("--vehicle-xml", type=Path, default=_ROOT / "database/vehicles/fsae/ubco-2026-ev.xml")
-    parser.add_argument("--track-xlsx", type=Path, default=_ROOT / "database/tracks/fsae_skidpad/fsae-skidpad.xlsx")
+    parser.add_argument(
+        "--track-xlsx",
+        type=Path,
+        default=_ROOT / "database/tracks/fsae_2019_endurance/2019_endurance.xlsx",
+    )
     parser.add_argument("-o", "--output", type=Path, default=Path("qss_out"))
     parser.add_argument("--speed", type=float, default=15.0, help="G-G envelope speed [m/s]")
     parser.add_argument("--gg-points", type=int, default=10)
     parser.add_argument("--v-cap", type=float, default=40.0)
     parser.add_argument("--synthetic", action="store_true", help="Skip fastest-lap gg_diagram (tests / no lib)")
     parser.add_argument("--hud-index", type=int, default=None, help="Mesh index for the static HUD PNG")
+    parser.add_argument("--cam-height", type=float, default=80.0, help="Follow-cam vertical field [m]")
     args = parser.parse_args()
 
     if not args.track_xlsx.is_file():
@@ -87,8 +92,8 @@ def main() -> int:
     out = args.output
     out.mkdir(parents=True, exist_ok=True)
     plot_openlap_results(view, out / "openlap_results.png")
-    plot_hud_frame(view, out / "hud_frame.png", index=args.hud_index)
-    write_hud_html(view, out / "hud.html")
+    plot_hud_frame(view, out / "hud_frame.png", index=args.hud_index, cam_height=args.cam_height)
+    write_hud_html(view, out / "hud.html", cam_height=args.cam_height)
     write_csv(view, out / "channels.csv")
     write_summary(view, out / "summary.txt")
     print(f"Lap time {view.lap_time:.3f} s  ({source})")
