@@ -231,7 +231,7 @@ def _draw_ubco_car(ax, x: float, y: float, yaw: float, delta: float = 0.0, scale
     ax.text(nx, ny, "1", color=NAVY, ha="center", va="center", fontsize=7 * scale, fontweight="bold", zorder=7)
 
 
-def plot_hud_frame(view: LapView, path: str | Path, index: Optional[int] = None, cam_height: float = 36.0) -> Path:
+def plot_hud_frame(view: LapView, path: str | Path, index: Optional[int] = None, cam_height: float = 80.0) -> Path:
     """Static frame of the dark HUD: asphalt follow-cam plus side cards."""
     plt = _setup_mpl()
     from matplotlib.patches import Polygon, Circle, Rectangle, FancyBboxPatch
@@ -263,20 +263,12 @@ def plot_hud_frame(view: LapView, path: str | Path, index: Optional[int] = None,
 
     cx, cy = view.x[i], view.y[i]
     yaw = _heading(view, i)
-    cyaw, syaw = math.cos(yaw), math.sin(yaw)
+    xl, yl, xr, yr = _bounds(view, 3.5)
+    asphalt = list(zip(xl, yl)) + list(zip(reversed(xr), reversed(yr)))
+    ax.add_patch(Polygon(asphalt, closed=True, facecolor="#0d1117", edgecolor="none", zorder=1))
+    ax.plot(view.x, view.y, color="white", lw=0.8, ls=(0, (4, 4)), zorder=2)
 
-    def loc(wx: float, wy: float) -> tuple[float, float]:
-        dx, dy = wx - cx, wy - cy
-        return syaw * dx - cyaw * dy, cyaw * dx + syaw * dy
-
-    xl, yl, xr, yr = _bounds(view, 2.5)
-    asphalt = [loc(px, py) for px, py in list(zip(xl, yl)) + list(zip(reversed(xr), reversed(yr)))]
-    ax.add_patch(Polygon(asphalt, closed=True, facecolor="#2b3038", edgecolor="none", zorder=1))
-    lx, ly = zip(*[loc(px, py) for px, py in zip(view.x, view.y)])
-    ax.plot(lx, ly, color=(1, 1, 1, 0.28), lw=0.9, zorder=2)
-
-    i0 = max(0, i - 90)
-    i1 = min(n - 1, i + 48)
+    i0 = max(0, i - 220)
     cols = []
     for k in range(i0, i):
         tps, bps = view.tps[k], view.bps[k]
@@ -285,18 +277,15 @@ def plot_hud_frame(view: LapView, path: str | Path, index: Optional[int] = None,
         else:
             cols.append((0.65 + 0.35 * bps, 0.08, 0.08, 1.0))
     if i > i0:
-        pts = np.array([loc(view.x[k], view.y[k]) for k in range(i0, i + 1)])
+        pts = np.column_stack([view.x[i0 : i + 1], view.y[i0 : i + 1]])
         segs = np.concatenate([pts[:-1, None, :], pts[1:, None, :]], axis=1)
-        ax.add_collection(LineCollection(segs, colors=cols, linewidths=3.4, zorder=3))
-    if i1 > i:
-        ahead = np.array([loc(view.x[k], view.y[k]) for k in range(i, i1 + 1)])
-        ax.plot(ahead[:, 0], ahead[:, 1], color="#7ee787", lw=2.6, ls=(0, (5, 3)), zorder=4)
+        ax.add_collection(LineCollection(segs, colors=cols, linewidths=3.2, zorder=3))
 
-    _draw_ubco_car(ax, 0.0, 0.0, math.pi / 2, math.radians(view.delta[i]), scale=1.0)
+    _draw_ubco_car(ax, cx, cy, yaw, math.radians(view.delta[i]), scale=1.0)
     aspect = 0.685 / 0.715 * 16 / 9
     ax.set_aspect("equal")
-    ax.set_xlim(-0.5 * cam_height * aspect, 0.5 * cam_height * aspect)
-    ax.set_ylim(-0.30 * cam_height, 0.70 * cam_height)
+    ax.set_xlim(cx - 0.5 * cam_height * aspect, cx + 0.5 * cam_height * aspect)
+    ax.set_ylim(cy - 0.5 * cam_height, cy + 0.5 * cam_height)
     ax.set_autoscale_on(False)
 
     def _card(rect, title):
@@ -405,8 +394,8 @@ def _round_list(values, ndigits: int = 5):
     return [round(float(v), ndigits) for v in values]
 
 
-def write_hud_html(view: LapView, path: str | Path, cam_height: float = 36.0, half_width: float = 2.5) -> Path:
-    """Self-contained dark HUD with heading-up asphalt follow-cam and UBCO 3D car."""
+def write_hud_html(view: LapView, path: str | Path, cam_height: float = 80.0, half_width: float = 3.5) -> Path:
+    """Self-contained dark HUD with world-aligned asphalt follow-cam and UBCO 3D car."""
     xl, yl, xr, yr = _bounds(view, half_width)
     payload = {
         "vehicle": view.vehicle_name,

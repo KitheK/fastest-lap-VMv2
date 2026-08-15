@@ -82,8 +82,9 @@ class TestQssViz(unittest.TestCase):
             self.assertIn("drawDriver", text)
             self.assertIn("TPS", text)
             self.assertIn("BPS", text)
-            self.assertIn("optimal line ahead", text)
-            self.assertIn("Math.PI/2 - yaw", text)
+            self.assertIn("telem-filters", text)
+            self.assertIn('data-ch="v"', text)
+            self.assertIn("translate(w/2, h/2)", text)
             self.assertIn(str(round(view.lap_time, 3)).split(".")[0], text)
 
     def test_2019_endurance_qss_artifacts(self) -> None:
