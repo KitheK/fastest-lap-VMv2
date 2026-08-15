@@ -231,7 +231,7 @@ def _draw_ubco_car(ax, x: float, y: float, yaw: float, delta: float = 0.0, scale
     ax.text(nx, ny, "1", color=NAVY, ha="center", va="center", fontsize=7 * scale, fontweight="bold", zorder=7)
 
 
-def plot_hud_frame(view: LapView, path: str | Path, index: Optional[int] = None, cam_height: float = 44.0) -> Path:
+def plot_hud_frame(view: LapView, path: str | Path, index: Optional[int] = None, cam_height: float = 36.0) -> Path:
     """Static frame of the dark HUD: asphalt follow-cam plus side cards."""
     plt = _setup_mpl()
     from matplotlib.patches import Polygon, Circle, Rectangle, FancyBboxPatch
@@ -405,7 +405,7 @@ def _round_list(values, ndigits: int = 5):
     return [round(float(v), ndigits) for v in values]
 
 
-def write_hud_html(view: LapView, path: str | Path, cam_height: float = 44.0, half_width: float = 2.5) -> Path:
+def write_hud_html(view: LapView, path: str | Path, cam_height: float = 36.0, half_width: float = 2.5) -> Path:
     """Self-contained dark HUD with heading-up asphalt follow-cam and UBCO 3D car."""
     xl, yl, xr, yr = _bounds(view, half_width)
     payload = {
