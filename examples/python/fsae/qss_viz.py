@@ -2,9 +2,9 @@
 
 Result figures put each channel in its own axes, grouped (speed, curvature,
 acceleration, driver inputs, attitude). The HTML HUD keeps the original dark
-grid (header, follow-cam stage, side DRIVER/G-G/VEHICLE/MAP, bottom telemetry)
+grid (header, follow-cam stage, side DRIVER/G-G/TIRES/MAP, bottom telemetry)
 with the asphalt ribbon follow-cam and a UBCO-liveried 3D car on track and in
-the vehicle card.
+the tires card. Each tire cell updates Fz / P / E every frame.
 """
 
 from __future__ import annotations
@@ -324,22 +324,34 @@ def plot_hud_frame(view: LapView, path: str | Path, index: Optional[int] = None,
     for spine in axg.spines.values():
         spine.set_color(line)
 
-    axt = _card([0.705, 0.355, 0.28, 0.205], "VEHICLE")
-    axt.set_xlim(-1.5, 2.7)
-    axt.set_ylim(-1.35, 1.35)
+    axt = _card([0.705, 0.335, 0.28, 0.225], "TIRES")
+    axt.set_xlim(-1.6, 3.4)
+    axt.set_ylim(-1.45, 1.45)
     axt.set_aspect("equal")
     axt.set_xticks([])
     axt.set_yticks([])
-    _draw_ubco_car(axt, 0.15, 0.0, math.pi / 2, math.radians(view.delta[i]), scale=0.48)
-    names = ("FL", "FR", "RL", "RR")
-    fzs = (view.fz_fl[i], view.fz_fr[i], view.fz_rl[i], view.fz_rr[i])
+    _draw_ubco_car(axt, 0.15, 0.0, math.pi / 2, math.radians(view.delta[i]), scale=0.42)
+    corners = (
+        ("FL", view.fz_fl[i], view.power_fl[i], view.energy_fl[i], -1.45, 0.55),
+        ("FR", view.fz_fr[i], view.power_fr[i], view.energy_fr[i], 1.55, 0.55),
+        ("RL", view.fz_rl[i], view.power_rl[i], view.energy_rl[i], -1.45, -1.15),
+        ("RR", view.fz_rr[i], view.power_rr[i], view.energy_rr[i], 1.55, -1.15),
+    )
     fz_max = max(max(view.fz_fl), max(view.fz_fr), max(view.fz_rl), max(view.fz_rr), 1.0)
-    for k, (name, fz) in enumerate(zip(names, fzs)):
-        y0 = 0.95 - k * 0.55
-        axt.add_patch(Rectangle((1.55, y0), 0.16, 0.40 * fz / fz_max, color=GREEN if fz / fz_max < 0.7 else ORANGE))
-        axt.text(1.78, y0 + 0.08, f"{name}  {fz:.0f} N", fontsize=6.5, color=fg)
+    for name, fz, pwr, energy, x0, y0 in corners:
+        u = fz / fz_max
+        axt.add_patch(Rectangle((x0, y0), 1.55 * u, 0.16, color=ORANGE if u > 0.75 else GREEN, zorder=4))
+        axt.add_patch(Rectangle((x0, y0), 1.55, 0.16, fill=False, edgecolor=line, zorder=5))
+        axt.text(
+            x0,
+            y0 + 0.42,
+            f"{name}  Fz {fz:.0f} N\nP {pwr/1000:.2f} kW   E {energy/1e3:.1f} kJ",
+            fontsize=6.2,
+            color=fg,
+            va="bottom",
+        )
 
-    axm = _card([0.705, 0.195, 0.28, 0.145], "MAP")
+    axm = _card([0.705, 0.195, 0.28, 0.125], "MAP")
     axm.plot(view.x, view.y, color="#30363d", lw=5)
     axm.plot(view.x, view.y, color="#58a6ff", lw=1.4)
     axm.plot(cx, cy, marker=(3, 0, math.degrees(yaw) - 90), color=ORANGE, ms=9)

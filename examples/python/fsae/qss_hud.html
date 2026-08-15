@@ -10,7 +10,7 @@
   * { box-sizing: border-box; }
   html, body { margin:0; height:100%; background:var(--bg); color:var(--fg);
                font-family: ui-sans-serif, system-ui, sans-serif; }
-  #wrap { display:grid; grid-template-columns: 1fr 320px; grid-template-rows: auto 1fr 150px;
+  #wrap { display:grid; grid-template-columns: 1fr 340px; grid-template-rows: auto 1fr 140px;
           height:100%; gap:8px; padding:8px; }
   header { grid-column:1 / -1; display:flex; align-items:baseline; justify-content:space-between;
            padding:6px 10px; background:var(--panel); border:1px solid var(--line); border-radius:8px; }
@@ -19,18 +19,22 @@
   header .lap { color:var(--orange); font-variant-numeric: tabular-nums; font-size:20px; }
   #stage { position:relative; background:#010409; border:1px solid var(--line); border-radius:8px; overflow:hidden; }
   #track { width:100%; height:100%; display:block; }
-  #side { display:flex; flex-direction:column; gap:8px; min-height:0; overflow:auto; }
-  .card { background:var(--panel); border:1px solid var(--line); border-radius:8px; padding:8px 10px; }
+  #side { display:flex; flex-direction:column; gap:8px; min-height:0; overflow:hidden; }
+  .card { background:var(--panel); border:1px solid var(--line); border-radius:8px; padding:8px 10px; flex:0 0 auto; }
   .card h2 { margin:0 0 6px; font-size:11px; letter-spacing:.08em; text-transform:uppercase; color:var(--muted); }
+  #tires-card { flex:1 1 auto; min-height:0; display:flex; flex-direction:column; }
   #gg, #mini { width:100%; display:block; }
-  #wheel { width:120px; height:120px; flex:0 0 120px; display:block; }
-  #car3d { width:100%; height:108px; display:block; background:#0a0d12; border-radius:6px; }
-  .pedals { display:flex; gap:10px; height:88px; align-items:flex-end; }
+  #wheel { width:100px; height:100px; flex:0 0 100px; display:block; }
+  .tires-wrap { display:grid; grid-template-columns:1fr 1fr; gap:6px; flex:1; min-height:0; }
+  #car3d { grid-column:1 / -1; width:100%; height:84px; display:block; background:#0a0d12; border-radius:6px; }
+  .pedals { display:flex; gap:10px; height:80px; align-items:flex-end; }
   .bar { width:36px; height:100%; border:1px solid var(--fg); position:relative; background:#010409; }
   .bar > i { position:absolute; left:0; right:0; bottom:0; }
-  .tires { display:grid; grid-template-columns:1fr 1fr; gap:4px; font-family: ui-monospace, monospace; font-size:10px; margin-top:4px; }
-  .tire { border:1px solid var(--line); padding:6px; border-radius:6px; }
+  .tire { border:1px solid var(--line); padding:6px; border-radius:6px;
+          font-family: ui-monospace, monospace; font-size:11px; line-height:1.35; }
   .tire b { color:var(--orange); }
+  .barfz { height:6px; background:#010409; border:1px solid var(--line); border-radius:3px; margin:4px 0 5px; overflow:hidden; }
+  .barfz > i { display:block; height:100%; }
   #telem { grid-column:1 / -1; background:var(--panel); border:1px solid var(--line); border-radius:8px; }
   #telem canvas { width:100%; height:100%; display:block; }
   button { background:#21262d; color:var(--fg); border:1px solid var(--line); border-radius:6px;
@@ -66,14 +70,18 @@
         <canvas id="wheel" width="140" height="140"></canvas>
       </div>
     </div>
-    <div class="card"><h2>G-G</h2><canvas id="gg" width="280" height="140"></canvas></div>
-    <div class="card">
-      <h2>Vehicle</h2>
-      <canvas id="car3d" width="300" height="132"></canvas>
-      <div class="tires" id="tires"></div>
-      <div class="note" id="notes"></div>
+    <div class="card"><h2>G-G</h2><canvas id="gg" width="300" height="112"></canvas></div>
+    <div class="card" id="tires-card">
+      <h2>Tires</h2>
+      <div class="tires-wrap">
+        <div class="tire" id="tire-fl"></div>
+        <div class="tire" id="tire-fr"></div>
+        <canvas id="car3d" width="300" height="84"></canvas>
+        <div class="tire" id="tire-rl"></div>
+        <div class="tire" id="tire-rr"></div>
+      </div>
     </div>
-    <div class="card"><h2>Map</h2><canvas id="mini" width="280" height="120"></canvas></div>
+    <div class="card"><h2>Map</h2><canvas id="mini" width="300" height="96"></canvas></div>
   </div>
   <div id="telem"><canvas id="strip"></canvas></div>
 </div>
@@ -307,7 +315,7 @@ cardScene.background = new THREE.Color(0x0a0d12);
 cardScene.add(cardCar.group);
 lights(cardScene);
 const cardRenderer = new THREE.WebGLRenderer({canvas:cardCanvas, antialias:true, alpha:false});
-const cardCam = new THREE.PerspectiveCamera(32, 300/132, 0.05, 30);
+const cardCam = new THREE.PerspectiveCamera(32, 300/84, 0.05, 30);
 cardCam.position.set(3.15, 1.55, 2.55);
 cardCam.lookAt(0.25, 0.38, 0);
 
@@ -559,11 +567,18 @@ function drawStrip(f){
 function tires(f){
   const names=['fl','fr','rl','rr'];
   const labels=['FL','FR','RL','RR'];
-  const el = document.getElementById('tires');
-  el.innerHTML = names.map((k,i)=>{
+  let fzMax = 1;
+  for (const k of names) for (let i=0;i<N;i++) fzMax = Math.max(fzMax, D.fz[k][i]);
+  names.forEach((k,i)=>{
     const fz=samp(D.fz[k],f), p=samp(D.power[k],f)/1000, e=samp(D.energy[k],f)/1e3;
-    return `<div class="tire"><b>${labels[i]}</b><br/>Fz ${fz.toFixed(0)} N<br/>P ${p.toFixed(2)} kW<br/>E ${e.toFixed(2)} kJ</div>`;
-  }).join('');
+    const u = Math.max(0, Math.min(1, fz / fzMax));
+    const col = u > 0.75 ? '#f5a623' : '#3fb950';
+    const el = document.getElementById('tire-'+k);
+    el.innerHTML =
+      `<b>${labels[i]}</b>` +
+      `<div class="barfz"><i style="width:${(u*100).toFixed(0)}%;background:${col}"></i></div>` +
+      `Fz ${fz.toFixed(0)} N<br/>P ${p.toFixed(2)} kW<br/>E ${e.toFixed(2)} kJ`;
+  });
 }
 
 function frame(now){
@@ -585,8 +600,8 @@ function frame(now){
 }
 
 document.getElementById('title').textContent = D.vehicle + '  ·  ' + D.track;
+document.getElementById('title').title = D.notes || '';
 document.getElementById('lap').textContent = D.lapTime.toFixed(3) + ' s';
-document.getElementById('notes').textContent = D.notes;
 document.getElementById('play').onclick = () => {
   playing = !playing;
   document.getElementById('play').textContent = playing ? 'Pause' : 'Play';
