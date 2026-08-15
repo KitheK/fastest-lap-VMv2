@@ -74,10 +74,14 @@ class TestQssViz(unittest.TestCase):
             self.assertIn("buildUbcoCar", text)
             self.assertIn("camHeight", text)
             self.assertIn("D.xl", text)
-            self.assertIn("grid-template-columns: 1fr 340px", text)
+            self.assertIn("grid-template-columns: 1fr 380px", text)
+            self.assertIn("overflow-y:auto", text)
             self.assertIn("Tires", text)
             self.assertIn("tire-fl", text)
             self.assertIn("Fz", text)
+            self.assertIn("drawDriver", text)
+            self.assertIn("TPS", text)
+            self.assertIn("BPS", text)
             self.assertIn(str(round(view.lap_time, 3)).split(".")[0], text)
 
     def test_2019_endurance_qss_artifacts(self) -> None:

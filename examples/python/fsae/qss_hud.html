@@ -10,7 +10,7 @@
   * { box-sizing: border-box; }
   html, body { margin:0; height:100%; background:var(--bg); color:var(--fg);
                font-family: ui-sans-serif, system-ui, sans-serif; }
-  #wrap { display:grid; grid-template-columns: 1fr 340px; grid-template-rows: auto 1fr 140px;
+  #wrap { display:grid; grid-template-columns: 1fr 380px; grid-template-rows: auto 1fr 150px;
           height:100%; gap:8px; padding:8px; }
   header { grid-column:1 / -1; display:flex; align-items:baseline; justify-content:space-between;
            padding:6px 10px; background:var(--panel); border:1px solid var(--line); border-radius:8px; }
@@ -19,21 +19,21 @@
   header .lap { color:var(--orange); font-variant-numeric: tabular-nums; font-size:20px; }
   #stage { position:relative; background:#010409; border:1px solid var(--line); border-radius:8px; overflow:hidden; }
   #track { width:100%; height:100%; display:block; }
-  #side { display:flex; flex-direction:column; gap:8px; min-height:0; overflow:hidden; }
-  .card { background:var(--panel); border:1px solid var(--line); border-radius:8px; padding:8px 10px; flex:0 0 auto; }
-  .card h2 { margin:0 0 6px; font-size:11px; letter-spacing:.08em; text-transform:uppercase; color:var(--muted); }
-  #tires-card { flex:1 1 auto; min-height:0; display:flex; flex-direction:column; }
-  #gg, #mini { width:100%; display:block; }
-  #wheel { width:100px; height:100px; flex:0 0 100px; display:block; }
-  .tires-wrap { display:grid; grid-template-columns:1fr 1fr; gap:6px; flex:1; min-height:0; }
-  #car3d { grid-column:1 / -1; width:100%; height:84px; display:block; background:#0a0d12; border-radius:6px; }
-  .pedals { display:flex; gap:10px; height:80px; align-items:flex-end; }
-  .bar { width:36px; height:100%; border:1px solid var(--fg); position:relative; background:#010409; }
-  .bar > i { position:absolute; left:0; right:0; bottom:0; }
-  .tire { border:1px solid var(--line); padding:6px; border-radius:6px;
-          font-family: ui-monospace, monospace; font-size:11px; line-height:1.35; }
+  #side { display:flex; flex-direction:column; gap:10px; min-height:0;
+          overflow-y:auto; overflow-x:hidden; scrollbar-gutter:stable; padding-right:4px; }
+  .card { background:var(--panel); border:1px solid var(--line); border-radius:8px; padding:10px 12px; flex:0 0 auto; }
+  .card h2 { margin:0 0 8px; font-size:12px; letter-spacing:.08em; text-transform:uppercase; color:var(--muted); }
+  #tires-card { flex:0 0 auto; display:flex; flex-direction:column; }
+  #gg, #mini, #driver { width:100%; display:block; }
+  #driver { height:210px; }
+  #gg { height:210px; }
+  #mini { height:180px; }
+  .tires-wrap { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+  #car3d { grid-column:1 / -1; width:100%; height:160px; display:block; background:#0a0d12; border-radius:6px; }
+  .tire { border:1px solid var(--line); padding:8px; border-radius:6px;
+          font-family: ui-monospace, monospace; font-size:13px; line-height:1.4; }
   .tire b { color:var(--orange); }
-  .barfz { height:6px; background:#010409; border:1px solid var(--line); border-radius:3px; margin:4px 0 5px; overflow:hidden; }
+  .barfz { height:8px; background:#010409; border:1px solid var(--line); border-radius:3px; margin:5px 0 6px; overflow:hidden; }
   .barfz > i { display:block; height:100%; }
   #telem { grid-column:1 / -1; background:var(--panel); border:1px solid var(--line); border-radius:8px; }
   #telem canvas { width:100%; height:100%; display:block; }
@@ -62,26 +62,20 @@
   <div id="side">
     <div class="card">
       <h2>Driver</h2>
-      <div style="display:flex; gap:12px; align-items:center;">
-        <div class="pedals">
-          <div><div class="bar"><i id="bps" style="background:var(--red);height:0"></i></div><div style="text-align:center;color:var(--red);font-size:10px;">BPS</div></div>
-          <div><div class="bar"><i id="tps" style="background:var(--green);height:0"></i></div><div style="text-align:center;color:var(--green);font-size:10px;">TPS</div></div>
-        </div>
-        <canvas id="wheel" width="140" height="140"></canvas>
-      </div>
+      <canvas id="driver" width="360" height="210"></canvas>
     </div>
-    <div class="card"><h2>G-G</h2><canvas id="gg" width="300" height="112"></canvas></div>
+    <div class="card"><h2>G-G</h2><canvas id="gg" width="360" height="210"></canvas></div>
     <div class="card" id="tires-card">
       <h2>Tires</h2>
       <div class="tires-wrap">
         <div class="tire" id="tire-fl"></div>
         <div class="tire" id="tire-fr"></div>
-        <canvas id="car3d" width="300" height="84"></canvas>
+        <canvas id="car3d" width="360" height="160"></canvas>
         <div class="tire" id="tire-rl"></div>
         <div class="tire" id="tire-rr"></div>
       </div>
     </div>
-    <div class="card"><h2>Map</h2><canvas id="mini" width="300" height="96"></canvas></div>
+    <div class="card"><h2>Map</h2><canvas id="mini" width="360" height="180"></canvas></div>
   </div>
   <div id="telem"><canvas id="strip"></canvas></div>
 </div>
@@ -91,7 +85,10 @@ import * as THREE from 'three';
 const D = __PAYLOAD__;
 const N = D.time.length;
 let playing = true, t0 = performance.now(), tSim = 0;
-const CAM = D.camHeight || 72;
+const CAM = D.camHeight || 110;
+const CAR_CX = 0.26;  /* mid-wheelbase in the 3D car frame */
+const CAR_HALF_W = 2.2;
+const CAR_HALF_H = 1.45;
 
 function lerp(a,b,u){ return a + (b-a)*u; }
 function atTime(t){
@@ -115,7 +112,7 @@ function headingAt(f){
 const track = document.getElementById('track');
 const gg = document.getElementById('gg');
 const mini = document.getElementById('mini');
-const wheel = document.getElementById('wheel');
+const driver = document.getElementById('driver');
 const strip = document.getElementById('strip');
 function fit(c){
   const r = c.getBoundingClientRect();
@@ -304,10 +301,11 @@ trackCarCanvas.width = 384; trackCarCanvas.height = 256;
 const trackRenderer = new THREE.WebGLRenderer({canvas:trackCarCanvas, alpha:true, antialias:true, preserveDrawingBuffer:true});
 trackRenderer.setClearColor(0x000000, 0);
 trackRenderer.setSize(384, 256, false);
-const trackCam = new THREE.OrthographicCamera(-2.15, 2.15, 1.45, -1.45, 0.05, 20);
-trackCam.position.set(0.2, 9.2, 0.15);
+const trackCam = new THREE.OrthographicCamera(-CAR_HALF_W, CAR_HALF_W, CAR_HALF_H, -CAR_HALF_H, 0.05, 30);
+trackCam.position.set(CAR_CX, 12, 0);
 trackCam.up.set(0, 0, -1);
-trackCam.lookAt(0.35, 0.2, 0);
+trackCam.lookAt(CAR_CX, 0, 0);
+trackCam.updateProjectionMatrix();
 
 const cardCanvas = document.getElementById('car3d');
 const cardScene = new THREE.Scene();
@@ -315,9 +313,9 @@ cardScene.background = new THREE.Color(0x0a0d12);
 cardScene.add(cardCar.group);
 lights(cardScene);
 const cardRenderer = new THREE.WebGLRenderer({canvas:cardCanvas, antialias:true, alpha:false});
-const cardCam = new THREE.PerspectiveCamera(32, 300/84, 0.05, 30);
-cardCam.position.set(3.15, 1.55, 2.55);
-cardCam.lookAt(0.25, 0.38, 0);
+const cardCam = new THREE.PerspectiveCamera(28, 360/160, 0.05, 40);
+cardCam.position.set(4.6, 2.6, 3.8);
+cardCam.lookAt(CAR_CX, 0.32, 0);
 
 function resizeCard(){
   const r = cardCanvas.getBoundingClientRect();
@@ -444,31 +442,55 @@ function drawTrack(f){
   const spin = samp(D.s,f) / 0.245;
   ctx.translate(x, y);
   ctx.rotate(yaw);
-  ctx.scale(2.35, 2.35);
   try {
     renderTrackCar(delta, spin);
-    const m = 4.3;
+    const mw = CAR_HALF_W * 2, mh = CAR_HALF_H * 2;
     ctx.save();
     ctx.scale(1, -1);
-    ctx.drawImage(trackCarCanvas, -m/2, -m*0.62, m, m*256/384);
+    ctx.drawImage(trackCarCanvas, -mw/2, -mh/2, mw, mh);
     ctx.restore();
   } catch (err) {
+    ctx.translate(-CAR_CX, 0);
     drawUbcoCar(ctx, delta);
   }
   ctx.restore();
 }
 
-function drawWheel(deg){
-  const ctx = wheel.getContext('2d');
-  const w = wheel.width, h = wheel.height, cx=w/2, cy=h/2, r=Math.min(w,h)*0.38;
-  ctx.setTransform(1,0,0,1,0,0);
-  ctx.clearRect(0,0,w,h);
+function drawDriver(f){
+  const {ctx, w, h} = fit(driver);
+  ctx.fillStyle = '#010409'; ctx.fillRect(0,0,w,h);
+  const tps = Math.max(0, Math.min(1, samp(D.tps,f)));
+  const bps = Math.max(0, Math.min(1, samp(D.bps,f)));
+  const steer = samp(D.steer,f);
+  const barW = Math.max(42, w*0.14), barH = h*0.58, x0 = w*0.07, y0 = h*0.18;
+  function pedal(x, val, color, label){
+    ctx.fillStyle = '#161b22';
+    ctx.fillRect(x, y0, barW, barH);
+    ctx.strokeStyle = '#c9d1d9'; ctx.lineWidth = 2;
+    ctx.strokeRect(x, y0, barW, barH);
+    const fillH = barH * val;
+    ctx.fillStyle = color;
+    ctx.fillRect(x, y0 + barH - fillH, barW, fillH);
+    ctx.fillStyle = '#c9d1d9';
+    ctx.font = 'bold 14px ui-sans-serif, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(label, x + barW/2, y0 + barH + 18);
+    ctx.fillStyle = color;
+    ctx.font = 'bold 16px ui-sans-serif, sans-serif';
+    ctx.fillText(Math.round(val*100) + '%', x + barW/2, y0 - 8);
+  }
+  pedal(x0, bps, '#f85149', 'BPS');
+  pedal(x0 + barW + 16, tps, '#3fb950', 'TPS');
+  const cx = w*0.72, cy = h*0.48, r = Math.min(w,h)*0.28;
   ctx.strokeStyle = '#c9d1d9'; ctx.lineWidth = 3;
   ctx.beginPath(); ctx.arc(cx,cy,r,0,Math.PI*2); ctx.stroke();
-  const a = deg * Math.PI/180;
-  ctx.strokeStyle = '#f5a623'; ctx.lineWidth = 4;
+  const a = steer * Math.PI/180;
+  ctx.strokeStyle = '#f5a623'; ctx.lineWidth = 5;
   ctx.beginPath(); ctx.moveTo(cx,cy);
   ctx.lineTo(cx + r*Math.sin(a), cy - r*Math.cos(a)); ctx.stroke();
+  ctx.fillStyle = '#c9d1d9'; ctx.font = '13px ui-sans-serif, sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText(steer.toFixed(0) + '°', cx, cy + r + 20);
 }
 
 function drawMini(f){
@@ -590,11 +612,9 @@ function frame(now){
   const delta = samp(D.delta,f)*Math.PI/180;
   const spin = samp(D.s,f) / 0.245;
   document.getElementById('clock').textContent =
-    `t = ${tSim.toFixed(2)} s    ${(samp(D.v,f)*3.6).toFixed(1)} km/h    ax ${samp(D.ax,f).toFixed(2)} g    ay ${samp(D.ay,f).toFixed(2)} g`;
-  document.getElementById('tps').style.height = (samp(D.tps,f)*100)+'%';
-  document.getElementById('bps').style.height = (samp(D.bps,f)*100)+'%';
+    `t = ${tSim.toFixed(2)} s    ${(samp(D.v,f)*3.6).toFixed(1)} km/h    ax ${samp(D.ax,f).toFixed(2)} g    ay ${samp(D.ay,f).toFixed(2)} g    TPS ${(samp(D.tps,f)*100).toFixed(0)}%    BPS ${(samp(D.bps,f)*100).toFixed(0)}%`;
   drawTrack(f);
-  drawGG(f); drawMini(f); drawWheel(samp(D.steer,f)); drawStrip(f); tires(f);
+  drawGG(f); drawMini(f); drawDriver(f); drawStrip(f); tires(f);
   try { renderCardCar(delta, spin, tSim); } catch (err) {}
   requestAnimationFrame(frame);
 }
