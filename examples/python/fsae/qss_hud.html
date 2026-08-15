@@ -444,7 +444,8 @@ function drawTrack(f){
   ctx.rotate(yaw);
   try {
     renderTrackCar(delta, spin);
-    const mw = CAR_HALF_W * 2, mh = CAR_HALF_H * 2;
+    const show = 2.0;
+    const mw = CAR_HALF_W * 2 * show, mh = CAR_HALF_H * 2 * show;
     ctx.save();
     ctx.scale(1, -1);
     ctx.drawImage(trackCarCanvas, -mw/2, -mh/2, mw, mh);
