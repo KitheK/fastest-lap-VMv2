@@ -600,6 +600,21 @@ function drawStrip(f){
   for (const ch of CHANNELS){
     if (chOn[ch.id]) trace(ch.arr(), ch.color);
   }
+  ctx.font='11px ui-sans-serif, sans-serif';
+  ctx.textAlign='left';
+  let lx = 8;
+  for (const ch of CHANNELS){
+    if (!chOn[ch.id]) continue;
+    ctx.fillStyle = ch.color;
+    ctx.fillRect(lx, 6, 10, 8);
+    ctx.fillStyle = '#c9d1d9';
+    ctx.fillText(ch.id === 'v' ? 'speed' : ch.id, lx + 14, 14);
+    lx += 64;
+  }
+  if (lx === 8){
+    ctx.fillStyle = '#8b949e';
+    ctx.fillText('no channels selected', 8, 14);
+  }
 }
 
 function tires(f){
@@ -644,10 +659,12 @@ document.getElementById('play').onclick = () => {
   if (playing) t0 = performance.now() - tSim*1000;
 };
 document.querySelectorAll('#telem-filters input[data-ch]').forEach(el => {
+  const id = el.getAttribute('data-ch');
   const sync = () => {
-    chOn[el.dataset.ch] = el.checked;
-    el.parentElement.classList.toggle('on', el.checked);
+    chOn[id] = !!el.checked;
+    el.closest('label').classList.toggle('on', el.checked);
   };
+  el.addEventListener('input', sync);
   el.addEventListener('change', sync);
   sync();
 });

@@ -84,7 +84,13 @@ class TestQssViz(unittest.TestCase):
             self.assertIn("BPS", text)
             self.assertIn("telem-filters", text)
             self.assertIn('data-ch="v"', text)
+            self.assertIn('data-ch="tps"', text)
+            self.assertIn("no channels selected", text)
+            self.assertIn("addEventListener('input'", text)
+            self.assertIn("addEventListener('change'", text)
+            self.assertIn("setLineDash([1.6, 1.4])", text)
             self.assertIn("translate(w/2, h/2)", text)
+            self.assertNotIn("Math.PI/2 - yaw", text)
             self.assertIn(str(round(view.lap_time, 3)).split(".")[0], text)
 
     def test_2019_endurance_qss_artifacts(self) -> None:
