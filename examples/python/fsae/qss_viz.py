@@ -205,6 +205,7 @@ def _draw_ubco_car(ax, x: float, y: float, yaw: float, delta: float = 0.0, scale
     c, s = math.cos(yaw), math.sin(yaw)
 
     def wpt(lx, ly):
+        lx = lx - 0.26  # mid-wheelbase on the racing line
         return x + scale * (lx * c - ly * s), y + scale * (lx * s + ly * c)
 
     def poly(pts, **kw):
@@ -214,6 +215,7 @@ def _draw_ubco_car(ax, x: float, y: float, yaw: float, delta: float = 0.0, scale
     wb = 1.62
     tires = [(-0.55, -track / 2, 0.0), (-0.55, track / 2, 0.0), (wb - 0.55, -track / 2, delta), (wb - 0.55, track / 2, delta)]
     for tx, ty, st in tires:
+        tx = tx - 0.26
         cs, ss = math.cos(yaw + st), math.sin(yaw + st)
         corners = []
         for dx, dy in ((-0.28, -0.11), (0.28, -0.11), (0.28, 0.11), (-0.28, 0.11)):
@@ -229,7 +231,7 @@ def _draw_ubco_car(ax, x: float, y: float, yaw: float, delta: float = 0.0, scale
     ax.text(nx, ny, "1", color=NAVY, ha="center", va="center", fontsize=7 * scale, fontweight="bold", zorder=7)
 
 
-def plot_hud_frame(view: LapView, path: str | Path, index: Optional[int] = None, cam_height: float = 110.0) -> Path:
+def plot_hud_frame(view: LapView, path: str | Path, index: Optional[int] = None, cam_height: float = 80.0) -> Path:
     """Static frame of the dark HUD: asphalt follow-cam plus side cards."""
     plt = _setup_mpl()
     from matplotlib.patches import Polygon, Circle, Rectangle, FancyBboxPatch
@@ -279,7 +281,7 @@ def plot_hud_frame(view: LapView, path: str | Path, index: Optional[int] = None,
         segs = np.concatenate([pts[:-1, None, :], pts[1:, None, :]], axis=1)
         ax.add_collection(LineCollection(segs, colors=cols, linewidths=3.2, zorder=3))
 
-    _draw_ubco_car(ax, cx, cy, yaw, math.radians(view.delta[i]), scale=2.2)
+    _draw_ubco_car(ax, cx, cy, yaw, math.radians(view.delta[i]), scale=1.0)
     aspect = 0.685 / 0.715 * 16 / 9
     ax.set_aspect("equal")
     ax.set_xlim(cx - 0.5 * cam_height * aspect, cx + 0.5 * cam_height * aspect)
@@ -392,7 +394,7 @@ def _round_list(values, ndigits: int = 5):
     return [round(float(v), ndigits) for v in values]
 
 
-def write_hud_html(view: LapView, path: str | Path, cam_height: float = 110.0, half_width: float = 3.5) -> Path:
+def write_hud_html(view: LapView, path: str | Path, cam_height: float = 80.0, half_width: float = 3.5) -> Path:
     """Self-contained dark HUD with asphalt follow-cam and UBCO 3D car."""
     xl, yl, xr, yr = _bounds(view, half_width)
     payload = {

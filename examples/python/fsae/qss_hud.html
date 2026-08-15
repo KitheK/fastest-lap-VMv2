@@ -85,10 +85,10 @@ import * as THREE from 'three';
 const D = __PAYLOAD__;
 const N = D.time.length;
 let playing = true, t0 = performance.now(), tSim = 0;
-const CAM = D.camHeight || 110;
+const CAM = D.camHeight || 80;
 const CAR_CX = 0.26;  /* mid-wheelbase in the 3D car frame */
-const CAR_HALF_W = 2.2;
-const CAR_HALF_H = 1.45;
+const CAR_HALF_W = 1.95;
+const CAR_HALF_H = 0.95;
 
 function lerp(a,b,u){ return a + (b-a)*u; }
 function atTime(t){
@@ -444,12 +444,8 @@ function drawTrack(f){
   ctx.rotate(yaw);
   try {
     renderTrackCar(delta, spin);
-    const show = 2.0;
-    const mw = CAR_HALF_W * 2 * show, mh = CAR_HALF_H * 2 * show;
-    ctx.save();
-    ctx.scale(1, -1);
+    const mw = CAR_HALF_W * 2, mh = CAR_HALF_H * 2;
     ctx.drawImage(trackCarCanvas, -mw/2, -mh/2, mw, mh);
-    ctx.restore();
   } catch (err) {
     ctx.translate(-CAR_CX, 0);
     drawUbcoCar(ctx, delta);
