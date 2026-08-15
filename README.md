@@ -203,11 +203,23 @@ python3 $FASTESTLAP/examples/python/fsae/run_qss.py \
     -o $FASTESTLAP/qss_out
 ```
 
-Outputs in the folder: `openlap_results.png` (each channel on its own axes, grouped: speed, curvature, acceleration, driver inputs, attitude, plus GGV and map), `hud.html` (original dark grid: header, follow-cam stage, side DRIVER / G-G / TIRES / MAP, bottom telemetry), `hud_frame.png`, `channels.csv`. The stage uses a world-aligned asphalt ribbon (~80 m field of view, dashed centerline, throttle/brake trail) with a UBCO-liveried FSAE car on the road and in the tires card. The TIRES card updates FL/FR/RL/RR Fz, power, and energy every frame. DRIVER BPS/TPS bars and percentages update with the lap. The side column scrolls so the larger cards stay readable at 100% zoom. Channels are still QSS estimates (not a live 6DOF NLP). Use `--synthetic` if `libfastestlapc` is not on `LD_LIBRARY_PATH`. The uploaded Sketchfab `Carmodel.gltf` is missing its `untitled.bin` mesh; the HUD car is a Three.js FSAE with white nose / navy “1”, navy sidepods and flame graphics, and “UBC OKANAGAN RACING” on the rear wing.
+Outputs in the folder: `openlap_results.png` (each channel on its own axes, grouped: speed, curvature, acceleration, driver inputs, attitude, plus GGV and map), `hud.html` (original dark grid: header, follow-cam stage, side DRIVER / G-G / TIRES / MAP, bottom telemetry), `hud_frame.png`, `channels.csv`. The stage is a **heading-up** follow-cam (~44 m field of view, car in the lower third) so the asphalt width and the car stay in proportion. A dashed green **optimal line** is drawn ahead of the car (the OpenTRACK Shape racing line); behind the car the same line is colored throttle green / brake red. The TIRES card updates FL/FR/RL/RR Fz, power, and energy every frame. DRIVER BPS/TPS bars and percentages update with the lap. The side column scrolls so the larger cards stay readable at 100% zoom. Channels are still QSS estimates (not a live 6DOF NLP). Use `--synthetic` if `libfastestlapc` is not on `LD_LIBRARY_PATH`. The uploaded Sketchfab `Carmodel.gltf` is missing its `untitled.bin` mesh; the HUD car is a Three.js FSAE with white nose / navy “1”, navy sidepods and flame graphics, and “UBC OKANAGAN RACING” on the rear wing.
 
 ```bash
 PYTHONPATH=$FASTESTLAP/examples/python python3 -m unittest fsae.test_qss_viz
 ```
+
+#### 7. Other maps and constraints
+
+QSS HUD laps take any OpenTRACK Shape workbook (`Info` + `Shape` with Straight/Left/Right). Convert if you also want discrete XML for a later 6DOF NLP:
+
+```bash
+python3 $FASTESTLAP/examples/python/fsae/xlsx_to_track.py path/to/track.xlsx \
+    -o $FASTESTLAP/database/tracks/name/name.xml
+python3 $FASTESTLAP/examples/python/fsae/run_qss.py --track-xlsx path/to/track.xlsx -o qss_out
+```
+
+Useful knobs on `run_qss.py`: `--v-cap` (speed cap, default 40 m/s), `--cam-height` (HUD field of view), `--synthetic` (skip `gg_diagram` if the C library is missing). Vehicle numbers come from the OpenVEHICLE `.xlsx` / `ubco-2026-ev.xml` (mass, 80 kW envelope, aero, tires). `fsae-6dof` rejects elevation/banking tracks. A full transient `optimal_laptime()` NLP on `fsae-6dof` is registered but not yet a green run; G-G + QSS is the working optimal-speed path.
 
 ### The approach
 

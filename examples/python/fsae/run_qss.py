@@ -61,7 +61,7 @@ def main() -> int:
     parser.add_argument("--v-cap", type=float, default=40.0)
     parser.add_argument("--synthetic", action="store_true", help="Skip fastest-lap gg_diagram (tests / no lib)")
     parser.add_argument("--hud-index", type=int, default=None, help="Mesh index for the static HUD PNG")
-    parser.add_argument("--cam-height", type=float, default=80.0, help="Follow-cam vertical field [m]")
+    parser.add_argument("--cam-height", type=float, default=44.0, help="Follow-cam vertical field [m]")
     args = parser.parse_args()
 
     if not args.track_xlsx.is_file():
